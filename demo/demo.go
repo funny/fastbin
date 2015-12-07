@@ -16,4 +16,6 @@ type Test2 struct {
 	Field4 []int
 	Field5 []byte
 	Field6 string
+	Field7 float32
+	Field8 float64
 }

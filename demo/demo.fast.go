@@ -13,13 +13,9 @@ func (s *Test1) BinarySize() (n int) {
 	return
 }
 
-func (s *Test1) MarshalBytes(data []byte) {
-	s.MarshalBuffer(&binary.Buffer{Data:data})
-}
-
 func (s *Test1) MarshalBinary() (data []byte, err error) {
 	data = make([]byte, s.BinarySize())
-	s.MarshalBytes(data)
+	s.MarshalBuffer(&binary.Buffer{Data:data})
 	return
 }
 
@@ -60,17 +56,13 @@ func (s *Test1) UnmarshalBuffer(buf *binary.Buffer) {
 }
 
 func (s *Test2) BinarySize() (n int) {
-	n = 0 + 8 + 8 + 8 + len(s.Field4) * 8 + len(s.Field5) + len(s.Field6)
+	n = 0 + 8 + 8 + 8 + len(s.Field4) * 8 + len(s.Field5) + len(s.Field6) + 4 + 8
 	return
-}
-
-func (s *Test2) MarshalBytes(data []byte) {
-	s.MarshalBuffer(&binary.Buffer{Data:data})
 }
 
 func (s *Test2) MarshalBinary() (data []byte, err error) {
 	data = make([]byte, s.BinarySize())
-	s.MarshalBytes(data)
+	s.MarshalBuffer(&binary.Buffer{Data:data})
 	return
 }
 
@@ -91,6 +83,8 @@ func (s *Test2) MarshalBuffer(buf *binary.Buffer) {
 	buf.WriteBytes(s.Field5)
 	buf.WriteUint16LE(uint16(len(s.Field6)))
 	buf.WriteString(s.Field6)
+	buf.WriteFloat32LE(s.Field7)
+	buf.WriteFloat64LE(s.Field8)
 }
 
 func (s *Test2) UnmarshalBuffer(buf *binary.Buffer) {
@@ -104,5 +98,7 @@ func (s *Test2) UnmarshalBuffer(buf *binary.Buffer) {
 	}
 	s.Field5 = buf.ReadBytes(int(buf.ReadUint16LE()))
 	s.Field6 = buf.ReadString(int(buf.ReadUint16LE()))
+	s.Field7 = buf.ReadFloat32LE()
+	s.Field8 = buf.ReadFloat64LE()
 }
 

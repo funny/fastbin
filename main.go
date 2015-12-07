@@ -33,18 +33,20 @@ type TypeInfo struct {
 }
 
 var typeInfos = map[string]TypeInfo{
-	"string": {"string", 0, "", "", "", ""},
-	"byte":   {"byte", 1, "", "WriteUint8LE", "ReadUint8LE", ""},
-	"int":    {"int", 8, "", "WriteInt64LE", "ReadInt64LE", "int64"},
-	"int8":   {"int8", 1, "", "WriteInt8LE", "ReadInt8LE", ""},
-	"int16":  {"int16", 2, "", "WriteInt16LE", "ReadInt16LE", ""},
-	"int32":  {"int32", 4, "", "WriteInt32LE", "ReadInt32LE", ""},
-	"int64":  {"int64", 8, "", "WriteInt64LE", "ReadInt64LE", ""},
-	"uint":   {"uint", 8, "", "WriteUint64LE", "ReadUint64LE", "uint64"},
-	"uint8":  {"uint8", 1, "", "WriteUint8LE", "ReadUint8LE", ""},
-	"uint16": {"uint16", 2, "", "WriteUint16LE", "ReadUint16LE", ""},
-	"uint32": {"uint32", 4, "", "WriteUint32LE", "ReadUint32LE", ""},
-	"uint64": {"uint64", 8, "", "WriteUint64LE", "ReadUint64LE", ""},
+	"string":  {"string", 0, "", "", "", ""},
+	"byte":    {"byte", 1, "", "WriteUint8LE", "ReadUint8LE", ""},
+	"int":     {"int", 8, "", "WriteInt64LE", "ReadInt64LE", "int64"},
+	"int8":    {"int8", 1, "", "WriteInt8LE", "ReadInt8LE", ""},
+	"int16":   {"int16", 2, "", "WriteInt16LE", "ReadInt16LE", ""},
+	"int32":   {"int32", 4, "", "WriteInt32LE", "ReadInt32LE", ""},
+	"int64":   {"int64", 8, "", "WriteInt64LE", "ReadInt64LE", ""},
+	"uint":    {"uint", 8, "", "WriteUint64LE", "ReadUint64LE", "uint64"},
+	"uint8":   {"uint8", 1, "", "WriteUint8LE", "ReadUint8LE", ""},
+	"uint16":  {"uint16", 2, "", "WriteUint16LE", "ReadUint16LE", ""},
+	"uint32":  {"uint32", 4, "", "WriteUint32LE", "ReadUint32LE", ""},
+	"uint64":  {"uint64", 8, "", "WriteUint64LE", "ReadUint64LE", ""},
+	"float32": {"float32", 4, "", "WriteFloat32LE", "ReadFloat32LE", ""},
+	"float64": {"float64", 8, "", "WriteFloat64LE", "ReadFloat64LE", ""},
 }
 
 func main() {
