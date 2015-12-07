@@ -69,4 +69,4 @@ type Test struct {
 * `struct`，`*struct` - 调用对应类型的`MarshalBuffer`和`UnmarshalBuffer`
 * `[]struct`，`[]*struct` - 2字节的数组长度信息，后续每个元素分别调用对应类型的`MarshalBuffer`和`UnmarshalBuffer`
 
-生成出来的代码请参考：[demo/demo.fast.go](https://github.com/funny/fastbin/blob/master/demo/demo.fast.go)
+更详细的内容请参考生成出来的代码：[demo/demo.fast.go](https://github.com/funny/fastbin/blob/master/demo/demo.fast.go)
