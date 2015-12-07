@@ -1,7 +1,9 @@
 介绍
 ====
 
-这是一个用来生成Go结构体二进制序列化和反序列化代码的小工具，它可以生成的代码符合[`encoding.BinaryMarshaler`](https://golang.org/pkg/encoding/#BinaryMarshaler)和[`encoding.BinaryUnmarshaler`](https://golang.org/pkg/encoding/#BinaryUnmarshaler)接口标准，同时支持更高效的序列化和反序列化方式，可以配合[`github.com/funny/link`](https://github.com/funny/link)使用，作为通讯协议代码生成工具。
+这是一个用来生成Go结构体二进制序列化和反序列化代码的小工具，它可以生成的代码符合[`encoding.BinaryMarshaler`](https://golang.org/pkg/encoding/#BinaryMarshaler)和[`encoding.BinaryUnmarshaler`](https://golang.org/pkg/encoding/#BinaryUnmarshaler)接口标准。
+
+另外支持更高效的序列化和反序列化方式，可以作为[`github.com/funny/link`](https://github.com/funny/link)的通讯协议代码生成工具使用。
 
 这个生成工具将为代码中的每个结构体生成以下方法：
 
