@@ -1,7 +1,7 @@
 介绍
 ====
 
-这是一个用来生成Go结构体二进制序列化和反序列化代码的小工具，它可以生成的代码符合`encoding.BinaryMarshaler`和`encoding.BinaryUnmarshaler`接口标准，同时支持更高效的序列化和反序列化方式，可以配合[`github.com/funny/link`](https://github.com/funny/link)使用，作为通讯协议代码生成工具。
+这是一个用来生成Go结构体二进制序列化和反序列化代码的小工具，它可以生成的代码符合[`encoding.BinaryMarshaler`](https://golang.org/pkg/encoding/#BinaryMarshaler)和[`encoding.BinaryUnmarshaler`](https://golang.org/pkg/encoding/#BinaryUnmarshaler)接口标准，同时支持更高效的序列化和反序列化方式，可以配合[`github.com/funny/link`](https://github.com/funny/link)使用，作为通讯协议代码生成工具。
 
 这个生成工具将为代码中的每个结构体生成以下方法：
 
@@ -41,6 +41,8 @@ type Test struct {
 	Field2 string
 }
 ```
+
+如果你的`$GOPATH/bin`在`$PATH`环境变量里，可以用更简单的指令：`//go:generate fastbin`
 
 在需要生成代码的包的根路径执行`go generate ./...`即可生成所有代码，也可以单独指定需要生成的文件，例如：`go generate demo.go`。
 
