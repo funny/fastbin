@@ -56,7 +56,9 @@ func (s *Test1) UnmarshalBuffer(buf *binary.Buffer) {
 }
 
 func (s *Test2) BinarySize() (n int) {
-	n = 0 + 8 + 8 + 8 + len(s.Field4) * 8 + len(s.Field5) + len(s.Field6) + 4 + 8
+	n = 0 + 8 + 8 + 8 + len(s.Field4) * 8 + len(s.Field5) + len(s.Field6) + 4 + 8 + int(binary.VarintSize(int64(s.Field9)))	
+	for i := 0; i < len(s.Field10); i ++ {
+		n += int(binary.UvarintSize(uint64(s.Field10[i])))	}
 	return
 }
 
@@ -85,6 +87,11 @@ func (s *Test2) MarshalBuffer(buf *binary.Buffer) {
 	buf.WriteString(s.Field6)
 	buf.WriteFloat32LE(s.Field7)
 	buf.WriteFloat64LE(s.Field8)
+	buf.WriteVarint(int64(s.Field9))
+	buf.WriteUint16LE(uint16(len(s.Field10)))
+	for i := 0; i < len(s.Field10); i ++ {
+		buf.WriteUvarint(uint64(s.Field10[i]))
+	}
 }
 
 func (s *Test2) UnmarshalBuffer(buf *binary.Buffer) {
@@ -100,5 +107,10 @@ func (s *Test2) UnmarshalBuffer(buf *binary.Buffer) {
 	s.Field6 = buf.ReadString(int(buf.ReadUint16LE()))
 	s.Field7 = buf.ReadFloat32LE()
 	s.Field8 = buf.ReadFloat64LE()
+	s.Field9 = varint(buf.ReadVarint())
+	n = int(buf.ReadUint16LE())
+	for i := 0; i < n; i ++ {
+		s.Field10[i] = uvarint(buf.ReadUvarint())
+	}
 }
 

@@ -75,4 +75,21 @@ type Test struct {
 * `XXOO`，`*XXOO` - 调用对应类型的`MarshalBuffer`和`UnmarshalBuffer`
 * `[]XXOO`，`[]*XXOO` - 2字节的数组长度信息，后续每个元素分别调用对应类型的`MarshalBuffer`和`UnmarshalBuffer`
 
+支持变长整型编码，使用时需在代码中用`type`关键字声明`uvarint`和`varint`类型：
+
+```go
+//go:generate $GOPATH/bin/fastbin
+package demo
+
+type uvarint uint64
+type varint  int64
+
+type Test struct {
+	Field1 uvarint
+	Field2 varint
+}
+```
+
+生成器遇到`uvarint`，`varint`，`Uvarint`，`Varint`这几个类型的字段，就会自动采用变长整型编码。
+
 更详细的内容请参考生成后的代码：[demo/demo.fast.go](https://github.com/funny/fastbin/blob/master/demo/demo.fast.go)

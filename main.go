@@ -33,7 +33,6 @@ type TypeInfo struct {
 }
 
 var typeInfos = map[string]TypeInfo{
-	"string":  {"string", 0, "", "", "", ""},
 	"byte":    {"byte", 1, "", "WriteUint8LE", "ReadUint8LE", ""},
 	"int":     {"int", 8, "", "WriteInt64LE", "ReadInt64LE", "int64"},
 	"int8":    {"int8", 1, "", "WriteInt8LE", "ReadInt8LE", ""},
@@ -47,6 +46,11 @@ var typeInfos = map[string]TypeInfo{
 	"uint64":  {"uint64", 8, "", "WriteUint64LE", "ReadUint64LE", ""},
 	"float32": {"float32", 4, "", "WriteFloat32LE", "ReadFloat32LE", ""},
 	"float64": {"float64", 8, "", "WriteFloat64LE", "ReadFloat64LE", ""},
+	"string":  {"string", 0, "", "", "", ""},
+	"varint":  {"varint", 0, "", "", "", ""},
+	"Varint":  {"varint", 0, "", "", "", ""},
+	"uvarint": {"uvarint", 0, "", "", "", ""},
+	"Uvarint": {"uvarint", 0, "", "", "", ""},
 }
 
 func main() {
@@ -148,17 +152,23 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 	buf.WriteString("	n = 0")
 	for _, field := range si.Fields {
 		if !field.IsArray {
-			if field.TypeInfo.Name == "string" {
-				fmt.Fprintf(buf, " + len(s.%s)", field.Name)
-			} else if field.Size != 0 {
+			switch {
+			case field.Size != 0:
 				fmt.Fprintf(buf, " + %d", field.Size)
-			} else {
+			case field.TypeInfo.Name == "string":
+				fmt.Fprintf(buf, " + len(s.%s)", field.Name)
+			case field.TypeInfo.Name == "varint":
+				fmt.Fprintf(buf, " + int(binary.VarintSize(int64(s.%s)))", field.Name)
+			case field.TypeInfo.Name == "uvarint":
+				fmt.Fprintf(buf, " + int(binary.UvarintSize(uint64(s.%s)))", field.Name)
+			default:
 				fmt.Fprintf(buf, " + s.%s.BinarySize()", field.Name)
 			}
 		} else if field.Size != 0 {
-			if field.TypeInfo.Name == "byte" {
+			switch {
+			case field.TypeInfo.Name == "byte":
 				fmt.Fprintf(buf, " + len(s.%s)", field.Name)
-			} else {
+			default:
 				fmt.Fprintf(buf, " + len(s.%s) * %d", field.Name, field.Size)
 			}
 		}
@@ -167,7 +177,14 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 		if field.IsArray && field.Size == 0 {
 			buf.WriteString("	\n")
 			fmt.Fprintf(buf, "	for i := 0; i < len(s.%s); i ++ {\n", field.Name)
-			fmt.Fprintf(buf, "		n += s.%s[i].BinarySize()\n", field.Name)
+			switch {
+			case field.TypeInfo.Name == "varint":
+				fmt.Fprintf(buf, "		n += int(binary.VarintSize(int64(s.%s[i])))", field.Name)
+			case field.TypeInfo.Name == "uvarint":
+				fmt.Fprintf(buf, "		n += int(binary.UvarintSize(uint64(s.%s[i])))", field.Name)
+			default:
+				fmt.Fprintf(buf, "		n += s.%s[i].BinarySize()\n", field.Name)
+			}
 			buf.WriteString("	}")
 		}
 	}
@@ -191,23 +208,29 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 	fmt.Fprintf(buf, "func (s *%s) MarshalBuffer(buf *binary.Buffer) {\n", si.Name)
 	for _, field := range si.Fields {
 		if !field.IsArray {
-			if field.TypeInfo.Name == "string" {
-				fmt.Fprintf(buf, "	buf.WriteUint16LE(uint16(len(s.%s)))\n", field.Name)
-				fmt.Fprintf(buf, "	buf.WriteString(s.%s)\n", field.Name)
-			} else if field.TypeInfo.Size != 0 {
+			switch {
+			case field.TypeInfo.Size != 0:
 				if field.Convert == "" {
 					fmt.Fprintf(buf, "	buf.%s(s.%s)\n", field.EncodeFunc, field.Name)
 				} else {
 					fmt.Fprintf(buf, "	buf.%s(%s(s.%s))\n", field.EncodeFunc, field.Convert, field.Name)
 				}
-			} else {
+			case field.TypeInfo.Name == "string":
+				fmt.Fprintf(buf, "	buf.WriteUint16LE(uint16(len(s.%s)))\n", field.Name)
+				fmt.Fprintf(buf, "	buf.WriteString(s.%s)\n", field.Name)
+			case field.TypeInfo.Name == "varint":
+				fmt.Fprintf(buf, "	buf.WriteVarint(int64(s.%s))\n", field.Name)
+			case field.TypeInfo.Name == "uvarint":
+				fmt.Fprintf(buf, "	buf.WriteUvarint(uint64(s.%s))\n", field.Name)
+			default:
 				fmt.Fprintf(buf, "	s.%s.MarshalBuffer(buf)\n", field.Name)
 			}
 		} else {
 			fmt.Fprintf(buf, "	buf.WriteUint16LE(uint16(len(s.%s)))\n", field.Name)
-			if field.TypeInfo.Name == "byte" {
+			switch {
+			case field.TypeInfo.Name == "byte":
 				fmt.Fprintf(buf, "	buf.WriteBytes(s.%s)\n", field.Name)
-			} else if field.TypeInfo.Size != 0 {
+			case field.TypeInfo.Size != 0:
 				needLenVar = true
 				fmt.Fprintf(buf, "	for i := 0; i < len(s.%s); i ++ {\n", field.Name)
 				if field.Convert == "" {
@@ -216,10 +239,20 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 					fmt.Fprintf(buf, "		buf.%s(%s(s.%s[i]))\n", field.EncodeFunc, field.Convert, field.Name)
 				}
 				buf.WriteString("	}\n")
-			} else {
+			default:
 				needLenVar = true
 				fmt.Fprintf(buf, "	for i := 0; i < len(s.%s); i ++ {\n", field.Name)
-				fmt.Fprintf(buf, "		s.%s[i].MarshalBuffer(buf)\n", field.Name)
+				switch {
+				case field.TypeInfo.Name == "string":
+					fmt.Fprintf(buf, "		buf.WriteUint16LE(uint16(len(s.%s[i])))\n", field.Name)
+					fmt.Fprintf(buf, "		buf.WriteString(s.%s[i])\n", field.Name)
+				case field.TypeInfo.Name == "varint":
+					fmt.Fprintf(buf, "		buf.WriteVarint(int64(s.%s[i]))\n", field.Name)
+				case field.TypeInfo.Name == "uvarint":
+					fmt.Fprintf(buf, "		buf.WriteUvarint(uint64(s.%s[i]))\n", field.Name)
+				default:
+					fmt.Fprintf(buf, "		s.%s[i].MarshalBuffer(buf)\n", field.Name)
+				}
 				buf.WriteString("	}\n")
 			}
 		}
@@ -232,21 +265,27 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 	}
 	for _, field := range si.Fields {
 		if !field.IsArray {
-			if field.TypeInfo.Name == "string" {
-				fmt.Fprintf(buf, "	s.%s = buf.ReadString(int(buf.ReadUint16LE()))\n", field.Name)
-			} else if field.TypeInfo.Size != 0 {
+			switch {
+			case field.TypeInfo.Size != 0:
 				if field.Convert == "" {
 					fmt.Fprintf(buf, "	s.%s = buf.%s()\n", field.Name, field.DecodeFunc)
 				} else {
 					fmt.Fprintf(buf, "	s.%s = %s(buf.%s())\n", field.Name, field.TypeInfo.Name, field.DecodeFunc)
 				}
-			} else {
+			case field.TypeInfo.Name == "string":
+				fmt.Fprintf(buf, "	s.%s = buf.ReadString(int(buf.ReadUint16LE()))\n", field.Name)
+			case field.TypeInfo.Name == "varint" || field.TypeInfo.Name == "Varint":
+				fmt.Fprintf(buf, "	s.%s = %s(buf.ReadVarint())\n", field.Name, field.TypeInfo.Name)
+			case field.TypeInfo.Name == "uvarint" || field.TypeInfo.Name == "Uvarint":
+				fmt.Fprintf(buf, "	s.%s = %s(buf.ReadUvarint())\n", field.Name, field.TypeInfo.Name)
+			default:
 				fmt.Fprintf(buf, "	s.%s.UnmarshalBuffer(buf)\n", field.Name)
 			}
 		} else {
-			if field.TypeInfo.Name == "byte" {
+			switch {
+			case field.TypeInfo.Name == "byte":
 				fmt.Fprintf(buf, "	s.%s = buf.ReadBytes(int(buf.ReadUint16LE()))\n", field.Name)
-			} else if field.Size != 0 {
+			case field.Size != 0:
 				buf.WriteString("	n = int(buf.ReadUint16LE())\n")
 				buf.WriteString("	for i := 0; i < n; i ++ {\n")
 				if field.Convert == "" {
@@ -255,10 +294,19 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 					fmt.Fprintf(buf, "		s.%s[i] = %s(buf.%s())\n", field.Name, field.TypeInfo.Name, field.DecodeFunc)
 				}
 				buf.WriteString("	}\n")
-			} else {
+			default:
 				buf.WriteString("	n = int(buf.ReadUint16LE())\n")
 				buf.WriteString("	for i := 0; i < n; i ++ {\n")
-				fmt.Fprintf(buf, "		s.%s[i].UnmarshalBuffer(buf)\n", field.Name)
+				switch {
+				case field.TypeInfo.Name == "string":
+					fmt.Fprintf(buf, "		s.%s[i] = buf.ReadString(int(buf.ReadUint16LE()))\n", field.Name)
+				case field.TypeInfo.Name == "varint" || field.TypeInfo.Name == "Varint":
+					fmt.Fprintf(buf, "		s.%s[i] = %s(buf.ReadVarint())\n", field.Name, field.TypeInfo.Name)
+				case field.TypeInfo.Name == "uvarint" || field.TypeInfo.Name == "Uvarint":
+					fmt.Fprintf(buf, "		s.%s[i] = %s(buf.ReadUvarint())\n", field.Name, field.TypeInfo.Name)
+				default:
+					fmt.Fprintf(buf, "		s.%s[i].UnmarshalBuffer(buf)\n", field.Name)
+				}
 				buf.WriteString("	}\n")
 			}
 		}
