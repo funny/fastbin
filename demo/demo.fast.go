@@ -55,7 +55,7 @@ func (s *Test1) UnmarshalBuffer(buf *binary.Buffer) {
 }
 
 func (s *Test2) BinarySize() (n int) {
-	n = 0 + 8 + 8 + 8 + len(s.Field4)*8 + len(s.Field5) + len(s.Field6) + 4 + 8 + binary.MaxVarintLen64 + len(s.Field10)*binary.MaxVarintLen64
+	n = 0 + 8 + 8 + 8 + 4 + 8 + len(s.Field4)*8 + len(s.Field5) + len(s.Field6) + binary.MaxVarintLen64 + len(s.Field10)*binary.MaxVarintLen64
 	return
 }
 

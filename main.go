@@ -158,10 +158,13 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 	fmt.Fprintf(buf, "func (s *%s) BinarySize() (n int) {\n", si.Name)
 	buf.WriteString("	n = 0")
 	for _, field := range si.Fields {
-		if !field.IsArray {
+		if !field.IsArray && field.Size != 0 {
+			fmt.Fprintf(buf, " + %d", field.Size)
+		}
+	}
+	for _, field := range si.Fields {
+		if !field.IsArray && field.Size == 0 {
 			switch {
-			case field.Size != 0:
-				fmt.Fprintf(buf, " + %d", field.Size)
 			case field.TypeInfo.Name == "string":
 				fmt.Fprintf(buf, " + len(s.%s)", field.Name)
 			case field.TypeInfo.Name == "varint":
@@ -171,7 +174,7 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 			default:
 				fmt.Fprintf(buf, " + s.%s.BinarySize()", field.Name)
 			}
-		} else {
+		} else if field.IsArray {
 			switch {
 			case field.TypeInfo.Name == "byte":
 				fmt.Fprintf(buf, " + len(s.%s)", field.Name)
