@@ -96,22 +96,22 @@ func generateFile(filename string) {
 		}
 	}
 
-	code, err := format.Source(bf.Bytes())
+	code := bytes.Replace(bf.Bytes(), []byte("n = n\n"), []byte(""), -1)
+
+	code, err = format.Source(code)
 	if err != nil {
-		fmt.Errorf("Could't format source: %s", err)
-		os.Exit(-1)
+		fmt.Print(bf.String())
+		log.Fatalf("Could't format source: %s", err)
 	}
 
 	if len(flag.Args()) == 0 {
 		filename = strings.Replace(filename, ".go", ".fast.go", 1)
 		file, err := os.Create(filename)
 		if err != nil {
-			fmt.Errorf("Could't create file '%s': %s", filename, err)
-			os.Exit(-1)
+			log.Fatalf("Could't create file '%s': %s", filename, err)
 		}
 		if _, err := file.Write(code); err != nil {
-			fmt.Errorf("Write file '%s' failed: %s", filename, err)
-			os.Exit(-1)
+			log.Fatalf("Write file '%s' failed: %s", filename, err)
 		}
 		file.Close()
 	} else {
@@ -165,34 +165,29 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 			case field.TypeInfo.Name == "string":
 				fmt.Fprintf(buf, " + len(s.%s)", field.Name)
 			case field.TypeInfo.Name == "varint":
-				fmt.Fprintf(buf, " + int(binary.VarintSize(int64(s.%s)))", field.Name)
+				buf.WriteString(" + binary.MaxVarintLen64")
 			case field.TypeInfo.Name == "uvarint":
-				fmt.Fprintf(buf, " + int(binary.UvarintSize(uint64(s.%s)))", field.Name)
+				buf.WriteString(" + binary.MaxVarintLen64")
 			default:
 				fmt.Fprintf(buf, " + s.%s.BinarySize()", field.Name)
 			}
-		} else if field.Size != 0 {
+		} else {
 			switch {
 			case field.TypeInfo.Name == "byte":
 				fmt.Fprintf(buf, " + len(s.%s)", field.Name)
-			default:
-				fmt.Fprintf(buf, " + len(s.%s) * %d", field.Name, field.Size)
-			}
-		}
-	}
-	for _, field := range si.Fields {
-		if field.IsArray && field.Size == 0 {
-			buf.WriteString("	\n")
-			fmt.Fprintf(buf, "	for i := 0; i < len(s.%s); i ++ {\n", field.Name)
-			switch {
 			case field.TypeInfo.Name == "varint":
-				fmt.Fprintf(buf, "		n += int(binary.VarintSize(int64(s.%s[i])))\n", field.Name)
+				fmt.Fprintf(buf, " + len(s.%s) * binary.MaxVarintLen64", field.Name)
 			case field.TypeInfo.Name == "uvarint":
-				fmt.Fprintf(buf, "		n += int(binary.UvarintSize(uint64(s.%s[i])))\n", field.Name)
+				fmt.Fprintf(buf, " + len(s.%s) * binary.MaxVarintLen64", field.Name)
+			case field.Size != 0:
+				fmt.Fprintf(buf, " + len(s.%s) * %d", field.Name, field.Size)
 			default:
+				buf.WriteString("	\n")
+				fmt.Fprintf(buf, "	for i := 0; i < len(s.%s); i ++ {\n", field.Name)
 				fmt.Fprintf(buf, "		n += s.%s[i].BinarySize()\n", field.Name)
+				buf.WriteString("	}\n")
+				buf.WriteString("	n = n")
 			}
-			buf.WriteString("	}")
 		}
 	}
 	buf.WriteString("\n")
@@ -200,8 +195,9 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 	buf.WriteString("}\n\n")
 
 	fmt.Fprintf(buf, "func (s *%s) MarshalBinary() (data []byte, err error) {\n", si.Name)
-	buf.WriteString("	data = make([]byte, s.BinarySize())\n")
-	buf.WriteString("	s.MarshalBuffer(&binary.Buffer{Data:data})\n")
+	buf.WriteString("	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}\n")
+	buf.WriteString("	s.MarshalBuffer(&buf)\n")
+	buf.WriteString("	data = buf.Data[:buf.WritePos]\n")
 	buf.WriteString("	return\n")
 	buf.WriteString("}\n\n")
 
@@ -273,9 +269,9 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 			}
 		case field.TypeInfo.Name == "string":
 			fmt.Fprintf(buf, "		s.%s%s = buf.ReadString(int(buf.ReadUint16LE()))\n", field.Name, index)
-		case field.TypeInfo.Name == "varint" || field.TypeInfo.Name == "Varint":
+		case field.TypeInfo.Name == "varint":
 			fmt.Fprintf(buf, "		s.%s%s = %s(buf.ReadVarint())\n", field.Name, index, field.TypeInfo.Name)
-		case field.TypeInfo.Name == "uvarint" || field.TypeInfo.Name == "Uvarint":
+		case field.TypeInfo.Name == "uvarint":
 			fmt.Fprintf(buf, "		s.%s%s = %s(buf.ReadUvarint())\n", field.Name, index, field.TypeInfo.Name)
 		default:
 			fmt.Fprintf(buf, "		s.%s%s.UnmarshalBuffer(buf)\n", field.Name, index)

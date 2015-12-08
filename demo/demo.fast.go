@@ -13,8 +13,9 @@ func (s *Test1) BinarySize() (n int) {
 }
 
 func (s *Test1) MarshalBinary() (data []byte, err error) {
-	data = make([]byte, s.BinarySize())
-	s.MarshalBuffer(&binary.Buffer{Data: data})
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalBuffer(&buf)
+	data = buf.Data[:buf.WritePos]
 	return
 }
 
@@ -54,16 +55,14 @@ func (s *Test1) UnmarshalBuffer(buf *binary.Buffer) {
 }
 
 func (s *Test2) BinarySize() (n int) {
-	n = 0 + 8 + 8 + 8 + len(s.Field4)*8 + len(s.Field5) + len(s.Field6) + 4 + 8 + int(binary.VarintSize(int64(s.Field9)))
-	for i := 0; i < len(s.Field10); i++ {
-		n += int(binary.UvarintSize(uint64(s.Field10[i])))
-	}
+	n = 0 + 8 + 8 + 8 + len(s.Field4)*8 + len(s.Field5) + len(s.Field6) + 4 + 8 + binary.MaxVarintLen64 + len(s.Field10)*binary.MaxVarintLen64
 	return
 }
 
 func (s *Test2) MarshalBinary() (data []byte, err error) {
-	data = make([]byte, s.BinarySize())
-	s.MarshalBuffer(&binary.Buffer{Data: data})
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalBuffer(&buf)
+	data = buf.Data[:buf.WritePos]
 	return
 }
 
