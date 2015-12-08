@@ -10,6 +10,8 @@ type Test1 struct {
 	Field3 string
 	Field4 *Test2
 	Field5 []Test2
+	Field6 [10]int
+	Field7 [10]byte
 }
 
 type Test2 struct {

@@ -19,8 +19,9 @@ type StructInfo struct {
 }
 
 type FieldInfo struct {
-	Name    string
-	IsArray bool
+	Name     string
+	IsArray  bool
+	ArrayLen string
 	TypeInfo
 }
 
@@ -35,18 +36,18 @@ type TypeInfo struct {
 
 var typeInfos = map[string]TypeInfo{
 	"byte":    {"byte", 1, "", "WriteUint8LE", "ReadUint8LE", ""},
-	"int":     {"int", 8, "", "WriteInt64LE", "ReadInt64LE", "int64"},
 	"int8":    {"int8", 1, "", "WriteInt8LE", "ReadInt8LE", ""},
 	"int16":   {"int16", 2, "", "WriteInt16LE", "ReadInt16LE", ""},
 	"int32":   {"int32", 4, "", "WriteInt32LE", "ReadInt32LE", ""},
 	"int64":   {"int64", 8, "", "WriteInt64LE", "ReadInt64LE", ""},
-	"uint":    {"uint", 8, "", "WriteUint64LE", "ReadUint64LE", "uint64"},
 	"uint8":   {"uint8", 1, "", "WriteUint8LE", "ReadUint8LE", ""},
 	"uint16":  {"uint16", 2, "", "WriteUint16LE", "ReadUint16LE", ""},
 	"uint32":  {"uint32", 4, "", "WriteUint32LE", "ReadUint32LE", ""},
 	"uint64":  {"uint64", 8, "", "WriteUint64LE", "ReadUint64LE", ""},
 	"float32": {"float32", 4, "", "WriteFloat32LE", "ReadFloat32LE", ""},
 	"float64": {"float64", 8, "", "WriteFloat64LE", "ReadFloat64LE", ""},
+	"int":     {"int", 8, "", "WriteInt64LE", "ReadInt64LE", "int64"},
+	"uint":    {"uint", 8, "", "WriteUint64LE", "ReadUint64LE", "uint64"},
 	"string":  {"string", 0, "", "", "", ""},
 	"varint":  {"varint", 0, "", "", "", ""},
 	"Varint":  {"varint", 0, "", "", "", ""},
@@ -126,14 +127,17 @@ func analyzeStruct(structName string, st *ast.StructType) *StructInfo {
 		var fi FieldInfo
 
 		var ft *ast.Ident
-		switch field.Type.(type) {
+		switch t := field.Type.(type) {
 		case *ast.Ident:
-			ft = field.Type.(*ast.Ident)
+			ft = t
 		case *ast.StarExpr:
-			ft = field.Type.(*ast.StarExpr).X.(*ast.Ident)
+			ft = t.X.(*ast.Ident)
 		case *ast.ArrayType:
 			fi.IsArray = true
-			switch at := field.Type.(*ast.ArrayType).Elt.(type) {
+			if lit, ok := t.Len.(*ast.BasicLit); ok {
+				fi.ArrayLen = lit.Value
+			}
+			switch at := t.Elt.(type) {
 			case *ast.Ident:
 				ft = at
 			case *ast.StarExpr:
@@ -153,60 +157,60 @@ func analyzeStruct(structName string, st *ast.StructType) *StructInfo {
 }
 
 func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
-	si := analyzeStruct(structName, st)
-
-	fmt.Fprintf(buf, "func (s *%s) BinarySize() (n int) {\n", si.Name)
-	buf.WriteString("	n = 0")
-	for _, field := range si.Fields {
-		if !field.IsArray && field.Size != 0 {
-			fmt.Fprintf(buf, " + %d", field.Size)
-		}
-	}
-	for _, field := range si.Fields {
-		if !field.IsArray && field.Size == 0 {
-			switch {
-			case field.TypeInfo.Name == "string":
-				fmt.Fprintf(buf, " + len(s.%s)", field.Name)
-			case field.TypeInfo.Name == "varint":
-				buf.WriteString(" + binary.MaxVarintLen64")
-			case field.TypeInfo.Name == "uvarint":
-				buf.WriteString(" + binary.MaxVarintLen64")
-			default:
-				fmt.Fprintf(buf, " + s.%s.BinarySize()", field.Name)
-			}
-		} else if field.IsArray {
-			switch {
-			case field.TypeInfo.Name == "byte":
-				fmt.Fprintf(buf, " + len(s.%s)", field.Name)
-			case field.TypeInfo.Name == "varint":
-				fmt.Fprintf(buf, " + len(s.%s) * binary.MaxVarintLen64", field.Name)
-			case field.TypeInfo.Name == "uvarint":
-				fmt.Fprintf(buf, " + len(s.%s) * binary.MaxVarintLen64", field.Name)
-			case field.Size != 0:
-				fmt.Fprintf(buf, " + len(s.%s) * %d", field.Name, field.Size)
-			default:
-				buf.WriteString("	\n")
-				fmt.Fprintf(buf, "	for i := 0; i < len(s.%s); i ++ {\n", field.Name)
-				fmt.Fprintf(buf, "		n += s.%s[i].BinarySize()\n", field.Name)
-				buf.WriteString("	}\n")
-				buf.WriteString("	n = n")
-			}
-		}
-	}
-	buf.WriteString("\n")
-	buf.WriteString("	return\n")
-	buf.WriteString("}\n\n")
-
-	fmt.Fprintf(buf, "func (s *%s) MarshalBinary() (data []byte, err error) {\n", si.Name)
+	fmt.Fprintf(buf, "func (s *%s) MarshalBinary() (data []byte, err error) {\n", structName)
 	buf.WriteString("	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}\n")
 	buf.WriteString("	s.MarshalBuffer(&buf)\n")
 	buf.WriteString("	data = buf.Data[:buf.WritePos]\n")
 	buf.WriteString("	return\n")
 	buf.WriteString("}\n\n")
 
-	fmt.Fprintf(buf, "func (s *%s) UnmarshalBinary(data []byte) error {\n", si.Name)
+	fmt.Fprintf(buf, "func (s *%s) UnmarshalBinary(data []byte) error {\n", structName)
 	buf.WriteString("	s.UnmarshalBuffer(&binary.Buffer{Data:data})\n")
 	buf.WriteString("	return nil\n")
+	buf.WriteString("}\n\n")
+
+	si := analyzeStruct(structName, st)
+
+	fmt.Fprintf(buf, "func (s *%s) BinarySize() (n int) {\n", si.Name)
+	buf.WriteString("n = 0")
+	for _, field := range si.Fields {
+		if !field.IsArray && field.Size != 0 {
+			fmt.Fprintf(buf, "+ %d", field.Size)
+		}
+	}
+	for _, field := range si.Fields {
+		if !field.IsArray && field.Size == 0 {
+			switch {
+			case field.TypeInfo.Name == "string":
+				fmt.Fprintf(buf, "+ len(s.%s)", field.Name)
+			case field.TypeInfo.Name == "varint":
+				buf.WriteString("+ binary.MaxVarintLen64")
+			case field.TypeInfo.Name == "uvarint":
+				buf.WriteString("+ binary.MaxVarintLen64")
+			default:
+				fmt.Fprintf(buf, "+ s.%s.BinarySize()", field.Name)
+			}
+		} else if field.IsArray {
+			switch {
+			case field.TypeInfo.Name == "byte":
+				fmt.Fprintf(buf, "+ len(s.%s)", field.Name)
+			case field.TypeInfo.Name == "varint":
+				fmt.Fprintf(buf, "+ len(s.%s) * binary.MaxVarintLen64", field.Name)
+			case field.TypeInfo.Name == "uvarint":
+				fmt.Fprintf(buf, "+ len(s.%s) * binary.MaxVarintLen64", field.Name)
+			case field.Size != 0:
+				fmt.Fprintf(buf, "+ len(s.%s) * %d", field.Name, field.Size)
+			default:
+				buf.WriteString("\n")
+				fmt.Fprintf(buf, "for i := 0; i < len(s.%s); i ++ {\n", field.Name)
+				fmt.Fprintf(buf, "n += s.%s[i].BinarySize()\n", field.Name)
+				buf.WriteString("}\n")
+				buf.WriteString("n = n")
+			}
+		}
+	}
+	buf.WriteString("\n")
+	buf.WriteString("return\n")
 	buf.WriteString("}\n\n")
 
 	needLenVar := false
@@ -218,28 +222,35 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 		if field.IsArray && field.TypeInfo.Name != "byte" {
 			needLenVar = true
 			index = "[i]"
-			fmt.Fprintf(buf, "	buf.WriteUint16LE(uint16(len(s.%s)))\n", field.Name)
-			fmt.Fprintf(buf, "	for i := 0; i < len(s.%s); i ++ {\n", field.Name)
+			if field.ArrayLen == "" {
+				fmt.Fprintf(buf, "buf.WriteUint16LE(uint16(len(s.%s)))\n", field.Name)
+			}
+			fmt.Fprintf(buf, "for i := 0; i < len(s.%s); i ++ {\n", field.Name)
 		}
 
 		switch {
 		case field.IsArray && field.TypeInfo.Name == "byte":
-			fmt.Fprintf(buf, "	buf.WriteBytes(s.%s)\n", field.Name)
+			if field.ArrayLen == "" {
+				fmt.Fprintf(buf, "buf.WriteUint16LE(uint16(len(s.%s%s)))\n", field.Name, index)
+				fmt.Fprintf(buf, "buf.WriteBytes(s.%s)\n", field.Name)
+			} else {
+				fmt.Fprintf(buf, "buf.WriteBytes(s.%s[:])\n", field.Name)
+			}
 		case field.TypeInfo.Size != 0:
 			if field.Convert == "" {
-				fmt.Fprintf(buf, "		buf.%s(s.%s%s)\n", field.EncodeFunc, field.Name, index)
+				fmt.Fprintf(buf, "buf.%s(s.%s%s)\n", field.EncodeFunc, field.Name, index)
 			} else {
-				fmt.Fprintf(buf, "		buf.%s(%s(s.%s%s))\n", field.EncodeFunc, field.Convert, field.Name, index)
+				fmt.Fprintf(buf, "buf.%s(%s(s.%s%s))\n", field.EncodeFunc, field.Convert, field.Name, index)
 			}
 		case field.TypeInfo.Name == "string":
-			fmt.Fprintf(buf, "		buf.WriteUint16LE(uint16(len(s.%s%s)))\n", field.Name, index)
-			fmt.Fprintf(buf, "		buf.WriteString(s.%s%s)\n", field.Name, index)
+			fmt.Fprintf(buf, "buf.WriteUint16LE(uint16(len(s.%s%s)))\n", field.Name, index)
+			fmt.Fprintf(buf, "buf.WriteString(s.%s%s)\n", field.Name, index)
 		case field.TypeInfo.Name == "varint":
-			fmt.Fprintf(buf, "		buf.WriteVarint(int64(s.%s%s))\n", field.Name, index)
+			fmt.Fprintf(buf, "buf.WriteVarint(int64(s.%s%s))\n", field.Name, index)
 		case field.TypeInfo.Name == "uvarint":
-			fmt.Fprintf(buf, "		buf.WriteUvarint(uint64(s.%s%s))\n", field.Name, index)
+			fmt.Fprintf(buf, "buf.WriteUvarint(uint64(s.%s%s))\n", field.Name, index)
 		default:
-			fmt.Fprintf(buf, "		s.%s%s.MarshalBuffer(buf)\n", field.Name, index)
+			fmt.Fprintf(buf, "s.%s%s.MarshalBuffer(buf)\n", field.Name, index)
 		}
 
 		if field.IsArray && field.TypeInfo.Name != "byte" {
@@ -250,38 +261,42 @@ func generateStruct(buf *bytes.Buffer, structName string, st *ast.StructType) {
 
 	fmt.Fprintf(buf, "func (s *%s) UnmarshalBuffer(buf *binary.Buffer) {\n", si.Name)
 	if needLenVar {
-		buf.WriteString("	n := 0\n")
+		buf.WriteString("n := 0\n")
 	}
 	for _, field := range si.Fields {
 		index := ""
 
 		if field.IsArray && field.TypeInfo.Name != "byte" {
 			index = "[i]"
-			buf.WriteString("	n = int(buf.ReadUint16LE())\n")
-			buf.WriteString("	for i := 0; i < n; i ++ {\n")
+			buf.WriteString("n = int(buf.ReadUint16LE())\n")
+			buf.WriteString("for i := 0; i < n; i ++ {\n")
 		}
 
 		switch {
 		case field.IsArray && field.TypeInfo.Name == "byte":
-			fmt.Fprintf(buf, "	s.%s = buf.ReadBytes(int(buf.ReadUint16LE()))\n", field.Name)
+			if field.ArrayLen == "" {
+				fmt.Fprintf(buf, "s.%s = buf.ReadBytes(int(buf.ReadUint16LE()))\n", field.Name)
+			} else {
+				fmt.Fprintf(buf, "buf.Read(s.%s[:])\n", field.Name)
+			}
 		case field.Size != 0:
 			if field.Convert == "" {
-				fmt.Fprintf(buf, "		s.%s%s = buf.%s()\n", field.Name, index, field.DecodeFunc)
+				fmt.Fprintf(buf, "s.%s%s = buf.%s()\n", field.Name, index, field.DecodeFunc)
 			} else {
-				fmt.Fprintf(buf, "		s.%s%s = %s(buf.%s())\n", field.Name, index, field.TypeInfo.Name, field.DecodeFunc)
+				fmt.Fprintf(buf, "s.%s%s = %s(buf.%s())\n", field.Name, index, field.TypeInfo.Name, field.DecodeFunc)
 			}
 		case field.TypeInfo.Name == "string":
-			fmt.Fprintf(buf, "		s.%s%s = buf.ReadString(int(buf.ReadUint16LE()))\n", field.Name, index)
+			fmt.Fprintf(buf, "s.%s%s = buf.ReadString(int(buf.ReadUint16LE()))\n", field.Name, index)
 		case field.TypeInfo.Name == "varint":
-			fmt.Fprintf(buf, "		s.%s%s = %s(buf.ReadVarint())\n", field.Name, index, field.TypeInfo.Name)
+			fmt.Fprintf(buf, "s.%s%s = %s(buf.ReadVarint())\n", field.Name, index, field.TypeInfo.Name)
 		case field.TypeInfo.Name == "uvarint":
-			fmt.Fprintf(buf, "		s.%s%s = %s(buf.ReadUvarint())\n", field.Name, index, field.TypeInfo.Name)
+			fmt.Fprintf(buf, "s.%s%s = %s(buf.ReadUvarint())\n", field.Name, index, field.TypeInfo.Name)
 		default:
-			fmt.Fprintf(buf, "		s.%s%s.UnmarshalBuffer(buf)\n", field.Name, index)
+			fmt.Fprintf(buf, "s.%s%s.UnmarshalBuffer(buf)\n", field.Name, index)
 		}
 
 		if field.IsArray && field.TypeInfo.Name != "byte" {
-			buf.WriteString("	}\n")
+			buf.WriteString("}\n")
 		}
 	}
 	buf.WriteString("}\n\n")
