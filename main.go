@@ -113,33 +113,30 @@ func analyzeStruct(structName string, st *ast.StructType) *StructInfo {
 	si.Name = structName
 	for _, field := range st.Fields.List {
 		var fi FieldInfo
-		fi.Name = field.Names[0].String()
-		switch ft := field.Type.(type) {
+
+		var ft *ast.Ident
+		switch field.Type.(type) {
 		case *ast.Ident:
-			ti, exists := typeInfos[ft.Name]
-			if !exists {
-				ti = TypeInfo{Name: ft.Name}
-			}
-			fi.TypeInfo = ti
-			si.Fields = append(si.Fields, &fi)
+			ft = field.Type.(*ast.Ident)
 		case *ast.StarExpr:
-			fi.TypeInfo = TypeInfo{Name: ft.X.(*ast.Ident).Name}
-			si.Fields = append(si.Fields, &fi)
+			ft = field.Type.(*ast.StarExpr).X.(*ast.Ident)
 		case *ast.ArrayType:
 			fi.IsArray = true
-			switch t := ft.Elt.(type) {
+			switch at := field.Type.(*ast.ArrayType).Elt.(type) {
 			case *ast.Ident:
-				ti, exists := typeInfos[t.Name]
-				if !exists {
-					ti = TypeInfo{Name: t.Name}
-				}
-				fi.TypeInfo = ti
-				si.Fields = append(si.Fields, &fi)
+				ft = at
 			case *ast.StarExpr:
-				fi.TypeInfo = TypeInfo{Name: t.X.(*ast.Ident).Name}
-				si.Fields = append(si.Fields, &fi)
+				ft = at.X.(*ast.Ident)
 			}
 		}
+
+		fi.Name = field.Names[0].String()
+		ti, exists := typeInfos[ft.Name]
+		if !exists {
+			ti = TypeInfo{Name: ft.Name}
+		}
+		fi.TypeInfo = ti
+		si.Fields = append(si.Fields, &fi)
 	}
 	return &si
 }
