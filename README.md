@@ -54,7 +54,7 @@ type Test struct {
 
 生成出来的序列化和反序列化格式是简单的顺序序列化，所有的多字节数值都以小端格式编码。
 
-支持的定长数据类型如下：
+支持的数据类型如下：
 
 * `bool` - 1字节，值1对应true，值0对应false
 * `int8`，`uint8`，`byte` - 1字节
@@ -63,19 +63,15 @@ type Test struct {
 * `int`，`uint`，`int64，`uint64` - 8字节
 * `float32` - 4字节
 * `float64` - 8字节
-* `[n]byte`，`[n]int` ... 等定长数组 - 数组类型字节长度 * n
+* `string` - 以2个字节的长度信息`n`开头，后续为`n`个字节的字符串内容
 
-所有的不定长数据，都以2个字节的长度信息开头，后续跟着不定长字段的内容：
+支持一唯数组，数组分为变长和定长两种：
 
-* `string` - 2字节长度信息，后续为变长的内容
-* `[]byte` - 2字节长度信息，后续为变长的内容
-* `[]int32`, `[]int64` ... 等slice类型 - 2字节长度信息，后续为变长的内容
+* `[]byte`，`[]int` ... 变长数组 - 以2个字节的长度信息`n`开头，后续跟着`类型长度 * n`的内容
+* `[n]byte`，`[n]int` ... 等定长数组 - 数组类型长度 * n
 
-注意：数组只支持一唯数组，多唯数组请用结构体包裹。
+支持指针类型，指针类型比普通类型额外多一个字节区分空指针，指针值为0时表示空指针，空指针的后续内容长度为0。
 
-内置数据类型之外的其他类型：
-
-* `XXOO`，`*XXOO` - 调用对应类型的`MarshalBuffer`和`UnmarshalBuffer`
-* `[]XXOO`，`[]*XXOO` - 2字节的数组长度信息，后续每个元素分别调用对应类型的`MarshalBuffer`和`UnmarshalBuffer`
+所有内置类型以外的类型将通过`MarshalBuffer``和`UnmarshalBuffer`进行序列化和反序列化：
 
 更详细的内容请参考生成后的代码：[demo/demo.fast.go](https://github.com/funny/fastbin/blob/master/demo/demo.fast.go)

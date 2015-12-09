@@ -26,6 +26,7 @@ type Field struct {
 	IsArray   bool
 	ArraySize string
 	IsUnknow  bool
+	IsPointer bool
 }
 
 func analyzeFile(filename string, src interface{}) *File {
@@ -59,6 +60,7 @@ func analyzeStruct(structName string, structType *ast.StructType) *Struct {
 		case *ast.Ident:
 			fieldInfo.Type = fieldType.Name
 		case *ast.StarExpr:
+			fieldInfo.IsPointer = true
 			fieldInfo.Type = fieldType.X.(*ast.Ident).Name
 		case *ast.ArrayType:
 			if size, ok := fieldType.Len.(*ast.BasicLit); ok {
@@ -74,6 +76,7 @@ func analyzeStruct(structName string, structType *ast.StructType) *Struct {
 				}
 			case *ast.StarExpr:
 				fieldInfo.IsArray = true
+				fieldInfo.IsPointer = true
 				fieldInfo.Type = arrayType.X.(*ast.Ident).Name
 			default:
 				log.Fatalf("Unsupported array type %#v", fieldType.Elt)

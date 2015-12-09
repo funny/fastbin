@@ -24,9 +24,11 @@ type Test1 struct {
 
 type Test2 struct {
 	Field1 []string
-	Field3 [10]string
-	Field4 [11]byte
-	Field5 *Test3
+	Field2 [10]string
+	Field3 [11]byte
+	Field4 *Test3
+	Field5 []*Test3
+	Field6 []*int
 }
 
 type Test3 struct {

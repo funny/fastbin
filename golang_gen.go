@@ -25,7 +25,7 @@ func generateGolang(file *File) {
 		log.Fatalf("Could't format source: %s", err)
 	}
 
-	code = bytes.Replace(code, []byte("\n\n"), []byte("\n"), -1)
+	//code = bytes.Replace(code, []byte("\n\n"), []byte("\n"), -1)
 
 	if len(flag.Args()) == 0 {
 		filename := strings.Replace(file.Name, ".go", ".fast.go", 1)
@@ -62,43 +62,54 @@ func (s *Struct) GoNeedN() bool {
 }
 
 func (field *Field) GoEncodeFunc() string {
-	f := field.Name
+	f := "s." + field.Name
 	if field.IsArray {
 		f += "[i]"
 	}
+	var buf bytes.Buffer
+	s := ""
+	if field.IsPointer {
+		s = "*"
+		fmt.Fprintf(&buf, "if %s == nil { buf.WriteUint8(0); } else { buf.WriteUint8(1); ", f)
+	}
 	switch field.Type {
 	case "bool":
-		return fmt.Sprintf("if s.%s { buf.WriteUint8(1) } else { buf.WriteUint8(0) }", f)
+		fmt.Fprintf(&buf, "if %s { buf.WriteUint8(1) } else { buf.WriteUint8(0) }", f)
 	case "int":
-		return fmt.Sprintf("buf.WriteIntLE(s.%s)", f)
+		fmt.Fprintf(&buf, "buf.WriteIntLE(%s%s)", s, f)
 	case "uint":
-		return fmt.Sprintf("buf.WriteUintLE(s.%s)", f)
+		fmt.Fprintf(&buf, "buf.WriteUintLE(%s%s)", s, f)
 	case "int8":
-		return fmt.Sprintf("buf.WriteInt8(s.%s)", f)
+		fmt.Fprintf(&buf, "buf.WriteInt8(%s%s)", s, f)
 	case "uint8", "byte":
-		return fmt.Sprintf("buf.WriteUint8(s.%s)", f)
+		fmt.Fprintf(&buf, "buf.WriteUint8(%s%s)", s, f)
 	case "int16":
-		return fmt.Sprintf("buf.WriteInt16LE(s.%s)", f)
+		fmt.Fprintf(&buf, "buf.WriteInt16LE(%s%s)", s, f)
 	case "uint16":
-		return fmt.Sprintf("buf.WriteUint16LE(s.%s)", f)
+		fmt.Fprintf(&buf, "buf.WriteUint16LE(%s%s)", s, f)
 	case "int32":
-		return fmt.Sprintf("buf.WriteInt32LE(s.%s)", f)
+		fmt.Fprintf(&buf, "buf.WriteInt32LE(%s%s)", s, f)
 	case "uint32":
-		return fmt.Sprintf("buf.WriteUint32LE(s.%s)", f)
+		fmt.Fprintf(&buf, "buf.WriteUint32LE(%s%s)", s, f)
 	case "int64":
-		return fmt.Sprintf("buf.WriteInt64LE(s.%s)", f)
+		fmt.Fprintf(&buf, "buf.WriteInt64LE(%s%s)", s, f)
 	case "uint64":
-		return fmt.Sprintf("buf.WriteUint64LE(s.%s)", f)
+		fmt.Fprintf(&buf, "buf.WriteUint64LE(%s%s)", s, f)
 	case "string":
-		return fmt.Sprintf("buf.WriteUint16LE(uint16(len(s.%s)))\nbuf.WriteString(s.%s)", f, f)
+		fmt.Fprintf(&buf, "buf.WriteUint16LE(uint16(len(%s)))\nbuf.WriteString(%s)", f, f)
 	case "[]byte":
 		if field.ArraySize == "" {
-			return fmt.Sprintf("buf.WriteUint16LE(uint16(len(s.%s)))\nbuf.WriteBytes(s.%s)", f, f)
+			fmt.Fprintf(&buf, "buf.WriteUint16LE(uint16(len(%s)))\nbuf.WriteBytes(%s)", f, f)
 		} else {
-			return fmt.Sprintf("buf.WriteBytes(s.%s[:])", f)
+			fmt.Fprintf(&buf, "buf.WriteBytes(%s[:])", f)
 		}
+	default:
+		fmt.Sprintf("%s.MarshalBuffer(buf)", f)
 	}
-	return fmt.Sprintf("s.%s.MarshalBuffer(buf)", f)
+	if field.IsPointer {
+		fmt.Fprintf(&buf, " }")
+	}
+	return buf.String()
 }
 
 func (field *Field) GoDecodeFunc() string {
@@ -106,37 +117,48 @@ func (field *Field) GoDecodeFunc() string {
 	if field.IsArray {
 		f += "[i]"
 	}
+	var buf bytes.Buffer
+	s := ""
+	if field.IsPointer {
+		s = "*"
+		fmt.Fprintf(&buf, "if buf.ReadUint8() == 1 { ")
+	}
 	switch field.Type {
 	case "bool":
-		return fmt.Sprintf("s.%s = buf.ReadUint8() > 0", f)
+		fmt.Fprintf(&buf, "%ss.%s = buf.ReadUint8() > 0", s, f)
 	case "int":
-		return fmt.Sprintf("s.%s = buf.ReadIntLE()", f)
+		fmt.Fprintf(&buf, "%ss.%s = buf.ReadIntLE()", s, f)
 	case "uint":
-		return fmt.Sprintf("s.%s = buf.ReadUintLE()", f)
+		fmt.Fprintf(&buf, "%ss.%s = buf.ReadUintLE()", s, f)
 	case "int8":
-		return fmt.Sprintf("s.%s = buf.ReadInt8()", f)
+		fmt.Fprintf(&buf, "%ss.%s = buf.ReadInt8()", s, f)
 	case "uint8", "byte":
-		return fmt.Sprintf("s.%s = buf.ReadUint8()", f)
+		fmt.Fprintf(&buf, "%ss.%s = buf.ReadUint8()", s, f)
 	case "int16":
-		return fmt.Sprintf("s.%s = buf.ReadInt16LE()", f)
+		fmt.Fprintf(&buf, "%ss.%s = buf.ReadInt16LE()", s, f)
 	case "uint16":
-		return fmt.Sprintf("s.%s = buf.ReadUint16LE()", f)
+		fmt.Fprintf(&buf, "%ss.%s = buf.ReadUint16LE()", s, f)
 	case "int32":
-		return fmt.Sprintf("s.%s = buf.ReadInt32LE()", f)
+		fmt.Fprintf(&buf, "%ss.%s = buf.ReadInt32LE()", s, f)
 	case "uint32":
-		return fmt.Sprintf("s.%s = buf.ReadUint32LE()", f)
+		fmt.Fprintf(&buf, "%ss.%s = buf.ReadUint32LE()", s, f)
 	case "int64":
-		return fmt.Sprintf("s.%s = buf.ReadInt64LE()", f)
+		fmt.Fprintf(&buf, "%ss.%s = buf.ReadInt64LE()", s, f)
 	case "uint64":
-		return fmt.Sprintf("s.%s = buf.ReadUint64LE()", f)
+		fmt.Fprintf(&buf, "%ss.%s = buf.ReadUint64LE()", s, f)
 	case "string":
-		return fmt.Sprintf("s.%s = buf.ReadString(int(buf.ReadUint16LE()))", f)
+		fmt.Fprintf(&buf, "s.%s = buf.ReadString(int(buf.ReadUint16LE()))", f)
 	case "[]byte":
 		if field.ArraySize == "" {
-			return fmt.Sprintf("s.%s = buf.ReadBytes(int(buf.ReadUint16LE()))", f)
+			fmt.Fprintf(&buf, "s.%s = buf.ReadBytes(int(buf.ReadUint16LE()))", f)
 		} else {
-			return fmt.Sprintf("copy(s.%s[:], buf.Take(%s))", f, field.ArraySize)
+			fmt.Fprintf(&buf, "copy(s.%s[:], buf.Take(%s))", f, field.ArraySize)
 		}
+	default:
+		fmt.Fprintf(&buf, "s.%s.UnmarshalBuffer(buf)", f)
 	}
-	return fmt.Sprintf("s.%s.UnmarshalBuffer(buf)", f)
+	if field.IsPointer {
+		fmt.Fprintf(&buf, " }")
+	}
+	return buf.String()
 }

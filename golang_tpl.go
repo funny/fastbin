@@ -27,13 +27,15 @@ func (s *{{.Name}}) BinarySize() (n int) {
 ` + fuck(`
 	n = 0
 	{{range .Fields}}
-		{{if and .Size (not .IsArray)}}
+		{{if .IsPointer}}
+			+ 1
+		{{else if and .Size (not .IsArray)}}
 			+ {{.Size}}
 		{{else if and .Size .ArraySize}}
 			+ {{.Size}} * {{.ArraySize}}
 		{{end}}
 	{{end}}
-	{{range .Fields}}
+	{{range .Fields}}{{if not .IsPointer}}
 		{{if and .Size .IsArray (not .ArraySize)}}
 			+ {{.Size}} * len(s.{{.Name}})
 		{{else if not .IsArray}} 
@@ -43,7 +45,7 @@ func (s *{{.Name}}) BinarySize() (n int) {
 				+ s.{{.Name}}.BinarySize()
 			{{end}}
 		{{end}}
-	{{end}}
+	{{end}}{{end}}
 `) + `
 	{{range .Fields}}
 		{{if .IsArray}}
@@ -51,11 +53,31 @@ func (s *{{.Name}}) BinarySize() (n int) {
 				for i := 0; i < {{.GoLen}}; i ++ {
 					n += len(s.{{.Name}}[i])
 				}
+			{{else if and .Size .IsPointer}}
+				for i := 0; i < {{.GoLen}}; i ++ {
+					if s.{{.Name}}[i] != nil {
+						n += {{.Size}}
+					}
+				}
 			{{else if .IsUnknow}}
 				for i := 0; i < {{.GoLen}}; i ++ {
-					n += s.{{.Name}}[i].BinarySize()
+					{{if .IsPointer}}
+						if s.{{.Name}}[i] != nil {
+							n += s.{{.Name}}[i].BinarySize()
+						}
+					{{else}}
+						n += s.{{.Name}}[i].BinarySize()
+					{{end}}
 				}
 			{{end}}
+		{{else if and .Size .IsPointer}}
+			if s.{{.Name}} != nil {
+				n += {{.Size}}
+			}
+		{{else if and .IsUnknow .IsPointer}}
+			if s.{{.Name}} != nil {
+				n += s.{{.Name}}.BinarySize()
+			}
 		{{end}}
 	{{end}}
 	return
