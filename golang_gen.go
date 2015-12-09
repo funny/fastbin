@@ -104,7 +104,7 @@ func (field *Field) GoEncodeFunc() string {
 			fmt.Fprintf(&buf, "buf.WriteBytes(%s[:])", f)
 		}
 	default:
-		fmt.Sprintf("%s.MarshalBuffer(buf)", f)
+		fmt.Fprintf(&buf, "%s.MarshalBuffer(buf)", f)
 	}
 	if field.IsPointer {
 		fmt.Fprintf(&buf, " }")

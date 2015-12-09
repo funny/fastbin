@@ -76,14 +76,16 @@ func (s *Test1) MarshalBuffer(buf *binary.Buffer) {
 		buf.WriteIntLE(s.Field14[i])
 	}
 
+	s.Field15.MarshalBuffer(buf)
+
 	buf.WriteUint16LE(uint16(len(s.Field16)))
 
 	for i := 0; i < len(s.Field16); i++ {
-
+		s.Field16[i].MarshalBuffer(buf)
 	}
 
 	for i := 0; i < 10; i++ {
-
+		s.Field17[i].MarshalBuffer(buf)
 	}
 
 }
@@ -205,6 +207,7 @@ func (s *Test2) MarshalBuffer(buf *binary.Buffer) {
 		buf.WriteUint8(0)
 	} else {
 		buf.WriteUint8(1)
+		s.Field4.MarshalBuffer(buf)
 	}
 
 	buf.WriteUint16LE(uint16(len(s.Field5)))
@@ -214,6 +217,7 @@ func (s *Test2) MarshalBuffer(buf *binary.Buffer) {
 			buf.WriteUint8(0)
 		} else {
 			buf.WriteUint8(1)
+			s.Field5[i].MarshalBuffer(buf)
 		}
 	}
 
