@@ -1,7 +1,6 @@
+NOTE：此工具还在持续开发中，可能会有较大改动。
 介绍
 ====
-
-NOTE：此工具还在持续开发中，可能会有较大改动。
 
 这是一个用来生成Go结构体二进制序列化和反序列化代码的小工具，它可以生成的代码符合[`encoding.BinaryMarshaler`](https://golang.org/pkg/encoding/#BinaryMarshaler)和[`encoding.BinaryUnmarshaler`](https://golang.org/pkg/encoding/#BinaryUnmarshaler)接口标准。
 
@@ -71,26 +70,11 @@ type Test struct {
 * `[]byte` - 2字节长度信息，后续为变长的内容
 * `[]int32`, `[]int64` ... 等slice类型 - 2字节长度信息，后续为变长的内容
 
-内置数据类型之外的其他无法识别的类型：
+注意：数组只支持一唯数组，多唯数组请用结构体包裹。
+
+内置数据类型之外的其他类型：
 
 * `XXOO`，`*XXOO` - 调用对应类型的`MarshalBuffer`和`UnmarshalBuffer`
 * `[]XXOO`，`[]*XXOO` - 2字节的数组长度信息，后续每个元素分别调用对应类型的`MarshalBuffer`和`UnmarshalBuffer`
-
-支持变长整型编码，使用时需在代码中用`type`关键字声明`uvarint`和`varint`类型：
-
-```go
-//go:generate $GOPATH/bin/fastbin
-package demo
-
-type uvarint uint64
-type varint  int64
-
-type Test struct {
-	Field1 uvarint
-	Field2 varint
-}
-```
-
-生成器遇到`uvarint`，`varint`，`Uvarint`，`Varint`这几个类型的字段，就会自动采用变长整型编码。
 
 更详细的内容请参考生成后的代码：[demo/demo.fast.go](https://github.com/funny/fastbin/blob/master/demo/demo.fast.go)
