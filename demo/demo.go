@@ -25,4 +25,9 @@ type Test2 struct {
 	Field1 []string
 	Field3 [10]string
 	Field4 [11]byte
+	Field5 *Test3
+}
+
+type Test3 struct {
+	Field1 [10]int
 }

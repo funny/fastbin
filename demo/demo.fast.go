@@ -41,8 +41,38 @@ func (s *Test1) MarshalBuffer(buf *binary.Buffer) {
 		s.Field17[i].MarshalBuffer(buf)
 	}
 }
+func (s *Test1) UnmarshalBuffer(buf *binary.Buffer) {
+	n := 0
+	s.Field1 = buf.ReadInt8()
+	s.Field2 = buf.ReadUint8()
+	s.Field3 = buf.ReadInt16LE()
+	s.Field4 = buf.ReadUint16LE()
+	s.Field5 = buf.ReadInt32LE()
+	s.Field6 = buf.ReadUint32LE()
+	s.Field7 = buf.ReadInt64LE()
+	s.Field8 = buf.ReadUint64LE()
+	s.Field9 = buf.ReadIntLE()
+	s.Field10 = buf.ReadUintLE()
+	s.Field11 = buf.ReadString(int(buf.ReadUint16LE()))
+	s.Field12 = buf.ReadBytes(int(buf.ReadUint16LE()))
+	n = int(buf.ReadUint16LE())
+	for i := 0; i < n; i++ {
+		s.Field13[i] = buf.ReadIntLE()
+	}
+	for i := 0; i < 10; i++ {
+		s.Field14[i] = buf.ReadIntLE()
+	}
+	s.Field15.UnmarshalBuffer(buf)
+	n = int(buf.ReadUint16LE())
+	for i := 0; i < n; i++ {
+		s.Field16[i].UnmarshalBuffer(buf)
+	}
+	for i := 0; i < 10; i++ {
+		s.Field17[i].UnmarshalBuffer(buf)
+	}
+}
 func (s *Test2) BinarySize() (n int) {
-	n = 0 + len(s.Field4)
+	n = 0 + len(s.Field4) + s.Field5.BinarySize()
 	for i := 0; i < len(s.Field1); i++ {
 		n += len(s.Field1[i])
 	}
@@ -62,4 +92,31 @@ func (s *Test2) MarshalBuffer(buf *binary.Buffer) {
 		buf.WriteString(s.Field3[i])
 	}
 	buf.WriteBytes(s.Field4[:])
+	s.Field5.MarshalBuffer(buf)
+}
+func (s *Test2) UnmarshalBuffer(buf *binary.Buffer) {
+	n := 0
+	n = int(buf.ReadUint16LE())
+	for i := 0; i < n; i++ {
+		s.Field1[i] = buf.ReadString(int(buf.ReadUint16LE()))
+	}
+	for i := 0; i < 10; i++ {
+		s.Field3[i] = buf.ReadString(int(buf.ReadUint16LE()))
+	}
+	copy(s.Field4[:], buf.Take(11))
+	s.Field5.UnmarshalBuffer(buf)
+}
+func (s *Test3) BinarySize() (n int) {
+	n = 0 + 8*10
+	return
+}
+func (s *Test3) MarshalBuffer(buf *binary.Buffer) {
+	for i := 0; i < 10; i++ {
+		buf.WriteIntLE(s.Field1[i])
+	}
+}
+func (s *Test3) UnmarshalBuffer(buf *binary.Buffer) {
+	for i := 0; i < 10; i++ {
+		s.Field1[i] = buf.ReadIntLE()
+	}
 }
