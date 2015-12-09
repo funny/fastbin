@@ -17,6 +17,19 @@ package {{.Package}}
 import "github.com/funny/binary"
 
 {{range .Structs}}
+
+func (s *{{.Name}}) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalBuffer(&buf)
+	data = buf.Data[:buf.WritePos]
+	return
+}
+
+func (s *{{.Name}}) UnmarshalBinary(data []byte) error {
+	s.UnmarshalBuffer(&binary.Buffer{Data:data})
+	return nil
+}
+
 func (s *{{.Name}}) BinarySize() (n int) {
 ` + fuck(`
 	n = 0
@@ -85,6 +98,7 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 		{{end}}
 	{{end}}
 }
+
 {{end}}
 `
 
