@@ -1,5 +1,29 @@
 package demo
 import "github.com/funny/binary"
+func (s *Test3) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalBuffer(&buf)
+	data = buf.Data[:buf.WritePos]
+	return
+}
+func (s *Test3) UnmarshalBinary(data []byte) error {
+	s.UnmarshalBuffer(&binary.Buffer{Data: data})
+	return nil
+}
+func (s *Test3) BinarySize() (n int) {
+	n = 0 + 8*10
+	return
+}
+func (s *Test3) MarshalBuffer(buf *binary.Buffer) {
+	for i := 0; i < 10; i++ {
+		buf.WriteIntLE(s.Field1[i])
+	}
+}
+func (s *Test3) UnmarshalBuffer(buf *binary.Buffer) {
+	for i := 0; i < 10; i++ {
+		s.Field1[i] = buf.ReadIntLE()
+	}
+}
 func (s *Test1) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
 	s.MarshalBuffer(&buf)
@@ -11,7 +35,7 @@ func (s *Test1) UnmarshalBinary(data []byte) error {
 	return nil
 }
 func (s *Test1) BinarySize() (n int) {
-	n = 0 + 1 + 1 + 2 + 2 + 4 + 4 + 8 + 8 + 8 + 8 + 8*10 + len(s.Field11) + len(s.Field12) + 8*len(s.Field13) + s.Field15.BinarySize()
+	n = 0 + 1 + 1 + 1 + 2 + 2 + 4 + 4 + 8 + 8 + 8 + 8 + 8*10 + len(s.Field11) + len(s.Field12) + 8*len(s.Field13) + s.Field15.BinarySize()
 	for i := 0; i < len(s.Field16); i++ {
 		n += s.Field16[i].BinarySize()
 	}
@@ -21,6 +45,11 @@ func (s *Test1) BinarySize() (n int) {
 	return
 }
 func (s *Test1) MarshalBuffer(buf *binary.Buffer) {
+	if s.Field0 {
+		buf.WriteUint8(1)
+	} else {
+		buf.WriteUint8(0)
+	}
 	buf.WriteInt8(s.Field1)
 	buf.WriteUint8(s.Field2)
 	buf.WriteInt16LE(s.Field3)
@@ -53,6 +82,7 @@ func (s *Test1) MarshalBuffer(buf *binary.Buffer) {
 }
 func (s *Test1) UnmarshalBuffer(buf *binary.Buffer) {
 	n := 0
+	s.Field0 = buf.ReadUint8() > 0
 	s.Field1 = buf.ReadInt8()
 	s.Field2 = buf.ReadUint8()
 	s.Field3 = buf.ReadInt16LE()
@@ -125,28 +155,4 @@ func (s *Test2) UnmarshalBuffer(buf *binary.Buffer) {
 	}
 	copy(s.Field4[:], buf.Take(11))
 	s.Field5.UnmarshalBuffer(buf)
-}
-func (s *Test3) MarshalBinary() (data []byte, err error) {
-	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalBuffer(&buf)
-	data = buf.Data[:buf.WritePos]
-	return
-}
-func (s *Test3) UnmarshalBinary(data []byte) error {
-	s.UnmarshalBuffer(&binary.Buffer{Data: data})
-	return nil
-}
-func (s *Test3) BinarySize() (n int) {
-	n = 0 + 8*10
-	return
-}
-func (s *Test3) MarshalBuffer(buf *binary.Buffer) {
-	for i := 0; i < 10; i++ {
-		buf.WriteIntLE(s.Field1[i])
-	}
-}
-func (s *Test3) UnmarshalBuffer(buf *binary.Buffer) {
-	for i := 0; i < 10; i++ {
-		s.Field1[i] = buf.ReadIntLE()
-	}
 }

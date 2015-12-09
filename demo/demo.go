@@ -2,6 +2,7 @@
 package demo
 
 type Test1 struct {
+	Field0  bool
 	Field1  int8
 	Field2  uint8
 	Field3  int16

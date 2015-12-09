@@ -56,6 +56,7 @@ type Test struct {
 
 支持的定长数据类型如下：
 
+* `bool` - 1字节，值1对应true，值0对应false
 * `int8`，`uint8`，`byte` - 1字节
 * `int16`，`uint16` - 2字节
 * `int32`，`uint32` - 4字节

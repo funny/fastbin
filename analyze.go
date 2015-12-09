@@ -83,7 +83,7 @@ func analyzeStruct(structName string, structType *ast.StructType) *Struct {
 		}
 		// check field type
 		switch fieldInfo.Type {
-		case "int8", "uint8", "byte":
+		case "int8", "uint8", "byte", "bool":
 			fieldInfo.Size = "1"
 		case "int16", "uint16":
 			fieldInfo.Size = "2"

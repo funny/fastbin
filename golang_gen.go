@@ -67,6 +67,8 @@ func (field *Field) GoEncodeFunc() string {
 		f += "[i]"
 	}
 	switch field.Type {
+	case "bool":
+		return fmt.Sprintf("if s.%s { buf.WriteUint8(1) } else { buf.WriteUint8(0) }", f)
 	case "int":
 		return fmt.Sprintf("buf.WriteIntLE(s.%s)", f)
 	case "uint":
@@ -105,6 +107,8 @@ func (field *Field) GoDecodeFunc() string {
 		f += "[i]"
 	}
 	switch field.Type {
+	case "bool":
+		return fmt.Sprintf("s.%s = buf.ReadUint8() > 0", f)
 	case "int":
 		return fmt.Sprintf("s.%s = buf.ReadIntLE()", f)
 	case "uint":
