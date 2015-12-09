@@ -1,28 +1,28 @@
 //go:generate $GOPATH/bin/fastbin
 package demo
 
-type varint int64
-type uvarint uint64
-
 type Test1 struct {
-	Field1 []int
-	Field2 []byte
-	Field3 string
-	Field4 *Test2
-	Field5 []Test2
-	Field6 [10]int
-	Field7 [10]byte
+	Field1  int8
+	Field2  uint8
+	Field3  int16
+	Field4  uint16
+	Field5  int32
+	Field6  uint32
+	Field7  int64
+	Field8  uint64
+	Field9  int
+	Field10 uint
+	Field11 string
+	Field12 []byte
+	Field13 []int
+	Field14 [10]int
+	Field15 Test2
+	Field16 []Test2
+	Field17 [10]Test2
 }
 
 type Test2 struct {
-	Field1  int
-	Field2  uint
-	Field3  uint64
-	Field4  []int
-	Field5  []byte
-	Field6  string
-	Field7  float32
-	Field8  float64
-	Field9  varint
-	Field10 []uvarint
+	Field1 []string
+	Field3 [10]string
+	Field4 [11]byte
 }
