@@ -120,7 +120,7 @@ ab := AddressBook{[]Person{
 ```
 Size: 76
 Marshal 1M times: 125.32859ms
-Marshal 1M times: 638.01296ms
+Unmarshal 1M times: 638.01296ms
 ```
 
 反序列化过程因为有对象创建，所以开销较大，以后可以考虑加入对象池进行优化。
