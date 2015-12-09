@@ -83,5 +83,5 @@ func main() {
 		buf.ReadPos = 0
 		ab.UnmarshalBuffer(buf)
 	}
-	println("Marshal 1M times:", time.Since(t2).String())
+	println("Umarshal 1M times:", time.Since(t2).String())
 }
