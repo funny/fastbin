@@ -33,6 +33,8 @@ func (s *{{.Name}}) BinarySize() (n int) {
 			+ {{.Size}}
 		{{else if and .Size .ArraySize}}
 			+ {{.Size}} * {{.ArraySize}}
+		{{else if or (eq .Type "string") (eq .Type "[]byte") (and .IsArray (not .ArraySize))}}
+			+ 2
 		{{end}}
 	{{end}}
 	{{range .Fields}}{{if not .IsPointer}}
@@ -104,6 +106,7 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 		{{if .IsArray}}
 			{{if not .ArraySize}}
 			n = int(buf.ReadUint16LE())
+			s.{{.Name}} = make([]{{if .IsPointer}}*{{end}}{{.Type}}, n)
 			{{end}}
 			for i := 0; i < {{if .ArraySize}}{{.ArraySize}}{{else}}n{{end}}; i ++ {
 				{{.GoDecodeFunc}}

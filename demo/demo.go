@@ -1,5 +1,10 @@
 //go:generate $GOPATH/bin/fastbin
-package demo
+package main
+
+import (
+	"github.com/funny/binary"
+	"time"
+)
 
 type Test1 struct {
 	Field0  bool
@@ -33,4 +38,50 @@ type Test2 struct {
 
 type Test3 struct {
 	Field1 [10]int
+}
+
+type AddressBook struct {
+	Person []Person
+}
+
+type Person struct {
+	Name  string
+	Id    int32
+	Email string
+	Phone []PhoneNum
+}
+
+type PhoneNum struct {
+	Number string
+	Type   int32
+}
+
+func main() {
+	ab := AddressBook{[]Person{
+		{"Alice", 10000, "", []PhoneNum{
+			{"123456789", 1},
+			{"87654321", 2},
+		}},
+		{"Bob", 20000, "", []PhoneNum{
+			{"01234567890", 3},
+		}},
+	}}
+
+	var buf = &binary.Buffer{Data: make([]byte, ab.BinarySize())}
+	println("Size:", len(buf.Data))
+
+	t1 := time.Now()
+	for i := 0; i < 1000000; i++ {
+		buf.WritePos = 0
+		ab.MarshalBuffer(buf)
+	}
+	println("Marshal 1M times:", time.Since(t1).String())
+
+	ab = AddressBook{}
+	t2 := time.Now()
+	for i := 0; i < 1000000; i++ {
+		buf.ReadPos = 0
+		ab.UnmarshalBuffer(buf)
+	}
+	println("Marshal 1M times:", time.Since(t2).String())
 }
