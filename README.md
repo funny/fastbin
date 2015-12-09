@@ -79,6 +79,54 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 
 更详细的内容请参考生成后的代码：[demo/demo.fast.go](https://github.com/funny/fastbin/blob/master/demo/demo.fast.go)
 
+关于体积和效率我按云风给sproto做的测试里的数据结构和数据做了测试。
+
+结构如下：
+
+```go
+type AddressBook struct {
+	Person []Person
+}
+
+type Person struct {
+	Name  string
+	Id    int32
+	Email string
+	Phone []PhoneNum
+}
+
+type PhoneNum struct {
+	Number string
+	Type   int32
+}
+```
+
+测试数据如下：
+
+```go
+ab := AddressBook{[]Person{
+	{"Alice", 10000, "", []PhoneNum{
+		{"123456789", 1},
+		{"87654321", 2},
+	}},
+	{"Bob", 20000, "", []PhoneNum{
+		{"01234567890", 3},
+	}},
+}}
+```
+
+序列化后数据体积为76字节，执行1M次编码和1M次解码所需时间为：
+
+```
+Size: 76
+Marshal 1M times: 125.32859ms
+Marshal 1M times: 638.01296ms
+```
+
+反序列化过程因为有对象创建，所以开销较大，以后可以考虑加入对象池进行优化。
+
+注：云风给sproto的测试是在lua里的，所以两者执行时间不具有可比性。
+
 Go代码生成
 =========
 
