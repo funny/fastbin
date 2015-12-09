@@ -52,26 +52,51 @@ type Test struct {
 格式
 ====
 
-生成出来的序列化和反序列化格式是简单的顺序序列化，所有的多字节数值都以小端格式编码。
+采用简单的顺序序列化，所有的多字节数值都以小端格式编码。
 
-支持的数据类型如下：
+支持的简单数据类型如下：
 
-* `bool` - 1字节，值1对应true，值0对应false
-* `int8`，`uint8`，`byte` - 1字节
-* `int16`，`uint16` - 2字节
-* `int32`，`uint32` - 4字节
-* `int`，`uint`，`int64，`uint64` - 8字节
-* `float32` - 4字节
-* `float64` - 8字节
-* `string` - 以2个字节的长度信息`n`开头，后续为`n`个字节的字符串内容
+| 类型 | 字节数 |
+|------|------|
+| int8, uint8, byte, bool | 1 |
+| int16, uint16 | 2 |
+| int32, uint32, float32 | 4 |
+| int, uint, int64, uint64, float64 | 8 |
 
-支持一唯数组，数组分为变长和定长两种：
+指针类型比普通类型额外多一个字节区分空指针，指针值为0时表示空指针，空指针的后续内容长度为0：
 
-* `[]byte`，`[]int` ... 变长数组 - 以2个字节的长度信息`n`开头，后续跟着`类型长度 * n`的内容
-* `[n]byte`，`[n]int` ... 等定长数组 - 数组类型长度 * n
+| 类型 | 字节数 |
+|------|------|
+| *int8, *uint8, *byte, *bool | 1 or 1 + 1 |
+| *int16, *uint16 | 1 or 1 + 2 |
+| *int32, *uint32, *float32 | 1 or 1 + 4 |
+| *int, *uint, *int64, *uint64, *float64 | 1 or 1 + 8 |
 
-支持指针类型，指针类型比普通类型额外多一个字节区分空指针，指针值为0时表示空指针，空指针的后续内容长度为0。
+变长数组类型采用2个字节存储数组元素个数：
+
+| 类型 | 字节数 |
+|------|------|
+| []int8, []uint8, []byte, []bool, string | 2 + N |
+| []int16, []uint16 | 2 + N * 2 |
+| []int32, []uint32, []float32 | 2 + N * 4 |
+| []int64, []uint64, []float64 | 2 + N * 8 |
+
+定长数组类型不需要元素个数信息：
+
+| 类型 | 字节数 |
+|------|------|
+| [N]int8, [N]uint8, [N]byte, [N]bool | N |
+| [N]int16, [N]uint16 | N * 2 |
+| [N]int32, [N]uint32, [N]float32 | N * 4 |
+| [N]int64, [N]uint64, [N]float64 | N * 8 |
 
 所有内置类型以外的类型将通过`MarshalBuffer``和`UnmarshalBuffer`进行序列化和反序列化：
+
+| 类型 | 字节数 |
+|------|------|
+| MyType | MyType.BinarySize() |
+| *MyType | 1 or 1 + MyType.BinarySize() |
+| []MyType | 2 + sum(MyType.BinarySize()) |
+| [N]MyType | sum(MyType.BinarySize()) |
 
 更详细的内容请参考生成后的代码：[demo/demo.fast.go](https://github.com/funny/fastbin/blob/master/demo/demo.fast.go)
