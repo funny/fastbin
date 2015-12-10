@@ -19,14 +19,18 @@ type Struct struct {
 }
 
 type Field struct {
-	Name      string
-	Type      string
-	Size      string
-	Len       string
-	IsArray   bool
-	ArraySize string
-	IsUnknow  bool
-	IsPointer bool
+	Name string
+	Type *Type
+}
+
+type Type struct {
+	Name     string
+	Size     int
+	Len      string
+	Type     *Type
+	IsUnknow bool
+	IsPoint  bool
+	IsArray  bool
 }
 
 func analyzeFile(filename string, src interface{}) *File {
@@ -54,51 +58,49 @@ func analyzeFile(filename string, src interface{}) *File {
 func analyzeStruct(structName string, structType *ast.StructType) *Struct {
 	structInfo := Struct{Name: structName}
 	for _, field := range structType.Fields.List {
-		// scan ast
-		fieldInfo := Field{Name: field.Names[0].Name}
-		switch fieldType := field.Type.(type) {
-		case *ast.Ident:
-			fieldInfo.Type = fieldType.Name
-		case *ast.StarExpr:
-			fieldInfo.IsPointer = true
-			fieldInfo.Type = fieldType.X.(*ast.Ident).Name
-		case *ast.ArrayType:
-			if size, ok := fieldType.Len.(*ast.BasicLit); ok {
-				fieldInfo.ArraySize = size.Value
-			}
-			switch arrayType := fieldType.Elt.(type) {
-			case *ast.Ident:
-				if arrayType.Name == "byte" {
-					fieldInfo.Type = "[]byte"
-				} else {
-					fieldInfo.IsArray = true
-					fieldInfo.Type = arrayType.Name
-				}
-			case *ast.StarExpr:
-				fieldInfo.IsArray = true
-				fieldInfo.IsPointer = true
-				fieldInfo.Type = arrayType.X.(*ast.Ident).Name
-			default:
-				log.Fatalf("Unsupported array type %#v", fieldType.Elt)
-			}
-		default:
-			log.Fatalf("Unsupported field type %#v", field.Type)
-		}
-		// check field type
-		switch fieldInfo.Type {
-		case "int8", "uint8", "byte", "bool":
-			fieldInfo.Size = "1"
-		case "int16", "uint16":
-			fieldInfo.Size = "2"
-		case "int32", "uint32":
-			fieldInfo.Size = "4"
-		case "int", "uint", "int64", "uint64":
-			fieldInfo.Size = "8"
-		case "string", "[]byte":
-		default:
-			fieldInfo.IsUnknow = true
-		}
-		structInfo.Fields = append(structInfo.Fields, &fieldInfo)
+		structInfo.Fields = append(structInfo.Fields, &Field{
+			Name: field.Names[0].Name,
+			Type: analyzeType(field.Type),
+		})
 	}
 	return &structInfo
+}
+
+func analyzeType(astType ast.Expr) *Type {
+	var typeInfo Type
+	switch t := astType.(type) {
+	case *ast.StarExpr:
+		typeInfo.Size = 1
+		typeInfo.IsPoint = true
+		typeInfo.Type = analyzeType(t.X)
+	case *ast.ArrayType:
+		if size, ok := t.Len.(*ast.BasicLit); ok {
+			typeInfo.Len = size.Value
+		}
+		if t, ok := t.Elt.(*ast.Ident); ok && t.Name == "byte" {
+			typeInfo.Size = 1
+			typeInfo.Name = "[]byte"
+			break
+		}
+		typeInfo.Size = 2
+		typeInfo.IsArray = true
+		typeInfo.Type = analyzeType(t.Elt)
+	case *ast.Ident:
+		typeInfo.Name = t.Name
+		switch t.Name {
+		case "int8", "uint8", "byte", "bool", "string":
+			typeInfo.Size = 1
+		case "int16", "uint16":
+			typeInfo.Size = 2
+		case "int32", "uint32", "float32":
+			typeInfo.Size = 4
+		case "int", "uint", "int64", "uint64", "float64":
+			typeInfo.Size = 8
+		default:
+			typeInfo.IsUnknow = true
+		}
+	default:
+		log.Fatalf("Unsupported field type %#v", astType)
+	}
+	return &typeInfo
 }

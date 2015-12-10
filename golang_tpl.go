@@ -1,16 +1,12 @@
 package main
 
-import (
-	"strings"
-)
-
-var go_template = `
+var goTemplate = `
 package {{.Package}}
 
 import "github.com/funny/binary"
 
 {{range .Structs}}
-
+{{NoNeedN}}
 func (s *{{.Name}}) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
 	s.MarshalBuffer(&buf)
@@ -24,104 +20,94 @@ func (s *{{.Name}}) UnmarshalBinary(data []byte) error {
 }
 
 func (s *{{.Name}}) BinarySize() (n int) {
-` + fuck(`
-	n = 0
 	{{range .Fields}}
-		{{if .IsPointer}}
-			+ 1
-		{{else if and .Size (not .IsArray)}}
-			+ {{.Size}}
-		{{else if and .Size .ArraySize}}
-			+ {{.Size}} * {{.ArraySize}}
-		{{else if or (eq .Type "string") (eq .Type "[]byte") (and .IsArray (not .ArraySize))}}
-			+ 2
-		{{end}}
-	{{end}}
-	{{range .Fields}}{{if not .IsPointer}}
-		{{if and .Size .IsArray (not .ArraySize)}}
-			+ {{.Size}} * len(s.{{.Name}})
-		{{else if not .IsArray}} 
-			{{if or (eq .Type "string") (eq .Type "[]byte")}}
-				+ len(s.{{.Name}})
-			{{else if .IsUnknow}}
-				+ s.{{.Name}}.BinarySize()
-			{{end}}
-		{{end}}
-	{{end}}{{end}}
-`) + `
-	{{range .Fields}}
-		{{if .IsArray}}
-			{{if or (eq .Type "string") (eq .Type "[]byte")}}
-				for i := 0; i < {{.GoLen}}; i ++ {
-					n += len(s.{{.Name}}[i])
-				}
-			{{else if and .Size .IsPointer}}
-				for i := 0; i < {{.GoLen}}; i ++ {
-					if s.{{.Name}}[i] != nil {
-						n += {{.Size}}
-					}
-				}
-			{{else if .IsUnknow}}
-				for i := 0; i < {{.GoLen}}; i ++ {
-					{{if .IsPointer}}
-						if s.{{.Name}}[i] != nil {
-							n += s.{{.Name}}[i].BinarySize()
-						}
-					{{else}}
-						n += s.{{.Name}}[i].BinarySize()
-					{{end}}
-				}
-			{{end}}
-		{{else if and .Size .IsPointer}}
-			if s.{{.Name}} != nil {
-				n += {{.Size}}
-			}
-		{{else if and .IsUnknow .IsPointer}}
-			if s.{{.Name}} != nil {
-				n += s.{{.Name}}.BinarySize()
-			}
-		{{end}}
+		{{template "TypeSize" (TypeInfo .)}}
 	{{end}}
 	return
 }
 
 func (s *{{.Name}}) MarshalBuffer(buf *binary.Buffer) {
 	{{range .Fields}}
-		{{if .IsArray}}
-			{{if not .ArraySize}}
-			buf.WriteUint16LE(uint16(len(s.{{.Name}})))
-			{{end}}
-			for i := 0; i < {{.GoLen}}; i ++ {
-				{{.GoEncodeFunc}}
-			}
-		{{else}}
-			{{.GoEncodeFunc}}
-		{{end}}
+		{{template "Marshal" (TypeInfo .)}}
 	{{end}}
 }
 
 func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
-	{{if .GoNeedN}}n := 0{{end}}
+	{{DeclN}}
 	{{range .Fields}}
-		{{if .IsArray}}
-			{{if not .ArraySize}}
-			n = int(buf.ReadUint16LE())
-			s.{{.Name}} = make([]{{if .IsPointer}}*{{end}}{{.Type}}, n)
-			{{end}}
-			for i := 0; i < {{if .ArraySize}}{{.ArraySize}}{{else}}n{{end}}; i ++ {
-				{{.GoDecodeFunc}}
-			}
-		{{else}}
-			{{.GoDecodeFunc}}
-		{{end}}
+		{{template "Unmarshal" (TypeInfo .)}}
 	{{end}}
 }
+{{end}}
 
+{{define "TypeSize"}}
+	{{if .Type.IsArray}}
+		{{if not .Type.Len}}
+		n += 2
+		{{NeedN}}
+		{{end}}
+		for {{.i}} := 0; {{.i}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.i}}++ {
+			{{template "TypeSize" (TypeInfo .)}}
+		}
+	{{else if .Type.IsPoint}}
+		n += 1
+		if {{.Name}} != nil {
+			{{template "TypeSize" (TypeInfo .)}}
+		}
+	{{else if .Type.IsUnknow}}
+		n += {{.Name}}.BinarySize()
+	{{else if or (eq .Type.Name "string") (eq .Type.Name "[]byte") }}
+		{{if not .Type.Len}}
+		n += 2
+		{{end}}
+		n += len({{.Name}})
+	{{else}}
+		n += {{.Type.Size}}
+	{{end}}
+{{end}}
+
+{{define "Marshal"}}
+	{{if .Type.IsArray}}
+		{{if not .Type.Len}}buf.WriteUint16LE(uint16(len({{.Name}}))){{end}}
+		for {{.i}} := 0; {{.i}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.i}}++ {
+			{{template "Marshal" (TypeInfo .)}}
+		}
+	{{else if .Type.IsPoint}}
+		if {{.Name}} == nil { 
+			buf.WriteUint8(0);
+		} else {
+			buf.WriteUint8(1);
+			{{if .Type.Type.IsUnknow}}
+				{{.Name}}.MarshalBuffer(buf)
+			{{else}}
+				{{template "Marshal" (TypeInfo .)}}
+			{{end}}
+		}
+	{{else}}
+		{{MarshalFunc .}}
+	{{end}}
+{{end}}
+
+{{define "Unmarshal"}}
+	{{if .Type.IsArray}}
+		{{if not .Type.Len}}
+		n = int(buf.ReadUint16LE())
+		{{.Name}} = make({{TypeName .Type}}, n)
+		{{end}}
+		for {{.i}} := 0; {{.i}}< {{if .Type.Len}}{{.Type.Len}}{{else}}n{{end}}; {{.i}}++ {
+			{{template "Unmarshal" (TypeInfo .)}}
+		}
+	{{else if .Type.IsPoint}}
+		if buf.ReadUint8() == 1 {
+			{{if .Type.Type.IsUnknow}}
+				{{.Name}} = new({{TypeName .Type.Type}})
+				{{.Name}}.UnmarshalBuffer(buf)
+			{{else}}
+				{{template "Unmarshal" (TypeInfo .)}}
+			{{end}}
+		}
+	{{else}}
+		{{UnmarshalFunc .}}
+	{{end}}
 {{end}}
 `
-
-func fuck(s string) string {
-	return strings.Replace(
-		strings.Replace(s, "\n", "", -1), "\t", "", -1,
-	)
-}
