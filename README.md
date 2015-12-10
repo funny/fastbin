@@ -39,7 +39,7 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 
 | 类型 | 字节数 |
 |------|------|
-| `int8`, `uint8`, `byte`, `bool | 1 |
+| `int8`, `uint8`, `byte`, `bool` | 1 |
 | `int16`, `uint16` | 2 |
 | `int32`, `uint32`, `float32` | 4 |
 | `int`, `uint`, `int64`, `uint64`, `float64` | 8 |
