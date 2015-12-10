@@ -35,19 +35,16 @@ func generateGolang(file *File) {
 
 	funcMap := template.FuncMap{
 		"TypeName": goTypeName,
-		"NeedN": func() string {
+		"SetNeedN": func() string {
 			needN = true
 			return ""
 		},
-		"NoNeedN": func() string {
+		"UnsetNeedN": func() string {
 			needN = false
 			return ""
 		},
-		"DeclN": func() string {
-			if needN {
-				return "var n int"
-			}
-			return ""
+		"IsNeedN": func() bool {
+			return needN
 		},
 		"TypeInfo": func(t interface{}) map[string]interface{} {
 			switch t1 := t.(type) {
@@ -60,7 +57,7 @@ func generateGolang(file *File) {
 				}
 			case map[string]interface{}:
 				if t1["Type"].(*Type).IsArray {
-					t1["Name"] = fmt.Sprintf("(%s[i%d])", t1["Name"], t1["iCount"])
+					t1["Name"] = fmt.Sprintf("%s[i%d]", t1["Name"], t1["iCount"])
 					t1["iCount"] = t1["iCount"].(int) + 1
 					t1["i"] = fmt.Sprintf("i%d", t1["iCount"])
 				} else if t1["Type"].(*Type).IsPoint {

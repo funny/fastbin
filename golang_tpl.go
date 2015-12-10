@@ -6,7 +6,7 @@ package {{.Package}}
 import "github.com/funny/binary"
 
 {{range .Structs}}
-{{NoNeedN}}
+	{{UnsetNeedN}}
 func (s *{{.Name}}) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
 	s.MarshalBuffer(&buf)
@@ -20,7 +20,8 @@ func (s *{{.Name}}) UnmarshalBinary(data []byte) error {
 }
 
 func (s *{{.Name}}) BinarySize() (n int) {
-	n = ` + line(`{{range .Fields}}
+	n = ` + line(`
+	{{range .Fields}}
 		{{if .IsFixLen}}
 			{{template "FixLenSize" .Type}}
 		{{end}}
@@ -40,14 +41,17 @@ func (s *{{.Name}}) MarshalBuffer(buf *binary.Buffer) {
 }
 
 func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
-	{{DeclN}}
+	{{if IsNeedN}}
+		var n int
+	{{end}}
 	{{range .Fields}}
 		{{template "Unmarshal" (TypeInfo .)}}
 	{{end}}
 }
 {{end}}
 
-` + line(`{{define "FixLenSize"}}
+` + line(`
+{{define "FixLenSize"}}
 	{{if .IsArray}}
 		{{.Len}} * {{template "FixLenSize" .Type}}
 	{{else}}
@@ -58,7 +62,7 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 {{define "TypeSize"}}
 	{{if .Type.IsArray}}
 		{{if not .Type.Len}}
-		n += 2{{NeedN}}
+			n += 2{{SetNeedN}}
 		{{end}}
 		for {{.i}} := 0; {{.i}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.i}}++ {
 			{{template "TypeSize" (TypeInfo .)}}
@@ -79,7 +83,9 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 
 {{define "Marshal"}}
 	{{if .Type.IsArray}}
-		{{if not .Type.Len}}buf.WriteUint16LE(uint16(len({{.Name}}))){{end}}
+		{{if not .Type.Len}}
+			buf.WriteUint16LE(uint16(len({{.Name}})))
+		{{end}}
 		for {{.i}} := 0; {{.i}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.i}}++ {
 			{{template "Marshal" (TypeInfo .)}}
 		}
@@ -102,8 +108,8 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 {{define "Unmarshal"}}
 	{{if .Type.IsArray}}
 		{{if not .Type.Len}}
-		n = int(buf.ReadUint16LE())
-		{{.Name}} = make({{TypeName .Type}}, n)
+			n = int(buf.ReadUint16LE())
+			{{.Name}} = make({{TypeName .Type}}, n)
 		{{end}}
 		for {{.i}} := 0; {{.i}}< {{if .Type.Len}}{{.Type.Len}}{{else}}n{{end}}; {{.i}}++ {
 			{{template "Unmarshal" (TypeInfo .)}}

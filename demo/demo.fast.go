@@ -1,5 +1,37 @@
 package main
 import "github.com/funny/binary"
+func (s *AddressBook) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalBuffer(&buf)
+	data = buf.Data[:buf.WritePos]
+	return
+}
+func (s *AddressBook) UnmarshalBinary(data []byte) error {
+	s.UnmarshalBuffer(&binary.Buffer{Data: data})
+	return nil
+}
+func (s *AddressBook) BinarySize() (n int) {
+	n = 0
+	n += 2
+	for i0 := 0; i0 < len(s.Person); i0++ {
+		n += s.Person[i0].BinarySize()
+	}
+	return
+}
+func (s *AddressBook) MarshalBuffer(buf *binary.Buffer) {
+	buf.WriteUint16LE(uint16(len(s.Person)))
+	for i0 := 0; i0 < len(s.Person); i0++ {
+		s.Person[i0].MarshalBuffer(buf)
+	}
+}
+func (s *AddressBook) UnmarshalBuffer(buf *binary.Buffer) {
+	var n int
+	n = int(buf.ReadUint16LE())
+	s.Person = make([]Person, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Person[i0].UnmarshalBuffer(buf)
+	}
+}
 func (s *Person) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
 	s.MarshalBuffer(&buf)
@@ -16,7 +48,7 @@ func (s *Person) BinarySize() (n int) {
 	n += 2 + len(s.Email)
 	n += 2
 	for i0 := 0; i0 < len(s.Phone); i0++ {
-		n += (s.Phone[i0]).BinarySize()
+		n += s.Phone[i0].BinarySize()
 	}
 	return
 }
@@ -28,7 +60,7 @@ func (s *Person) MarshalBuffer(buf *binary.Buffer) {
 	buf.WriteString(s.Email)
 	buf.WriteUint16LE(uint16(len(s.Phone)))
 	for i0 := 0; i0 < len(s.Phone); i0++ {
-		(s.Phone[i0]).MarshalBuffer(buf)
+		s.Phone[i0].MarshalBuffer(buf)
 	}
 }
 func (s *Person) UnmarshalBuffer(buf *binary.Buffer) {
@@ -39,7 +71,7 @@ func (s *Person) UnmarshalBuffer(buf *binary.Buffer) {
 	n = int(buf.ReadUint16LE())
 	s.Phone = make([]PhoneNum, n)
 	for i0 := 0; i0 < n; i0++ {
-		(s.Phone[i0]).UnmarshalBuffer(buf)
+		s.Phone[i0].UnmarshalBuffer(buf)
 	}
 }
 func (s *PhoneNum) MarshalBinary() (data []byte, err error) {
@@ -65,36 +97,4 @@ func (s *PhoneNum) MarshalBuffer(buf *binary.Buffer) {
 func (s *PhoneNum) UnmarshalBuffer(buf *binary.Buffer) {
 	s.Number = buf.ReadString(int(buf.ReadUint16LE()))
 	s.Type = buf.ReadInt32LE()
-}
-func (s *AddressBook) MarshalBinary() (data []byte, err error) {
-	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalBuffer(&buf)
-	data = buf.Data[:buf.WritePos]
-	return
-}
-func (s *AddressBook) UnmarshalBinary(data []byte) error {
-	s.UnmarshalBuffer(&binary.Buffer{Data: data})
-	return nil
-}
-func (s *AddressBook) BinarySize() (n int) {
-	n = 0
-	n += 2
-	for i0 := 0; i0 < len(s.Person); i0++ {
-		n += (s.Person[i0]).BinarySize()
-	}
-	return
-}
-func (s *AddressBook) MarshalBuffer(buf *binary.Buffer) {
-	buf.WriteUint16LE(uint16(len(s.Person)))
-	for i0 := 0; i0 < len(s.Person); i0++ {
-		(s.Person[i0]).MarshalBuffer(buf)
-	}
-}
-func (s *AddressBook) UnmarshalBuffer(buf *binary.Buffer) {
-	var n int
-	n = int(buf.ReadUint16LE())
-	s.Person = make([]Person, n)
-	for i0 := 0; i0 < n; i0++ {
-		(s.Person[i0]).UnmarshalBuffer(buf)
-	}
 }
