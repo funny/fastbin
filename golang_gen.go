@@ -11,6 +11,12 @@ import (
 	"text/template"
 )
 
+func line(s string) string {
+	return strings.Replace(
+		strings.Replace(s, "\n", "", -1), "\t", "", -1,
+	)
+}
+
 func goTypeName(t *Type) string {
 	if t.IsPoint {
 		return "*" + goTypeName(t.Type)
@@ -28,27 +34,6 @@ func generateGolang(file *File) {
 	needN := false
 
 	funcMap := template.FuncMap{
-		"TypeInfo": func(t interface{}) map[string]interface{} {
-			switch t1 := t.(type) {
-			case *Field:
-				return map[string]interface{}{
-					"Type":  t1.Type,
-					"Name":  "s." + t1.Name,
-					"i":     "i",
-					"Index": "",
-				}
-			case map[string]interface{}:
-				if t1["Type"].(*Type).IsArray {
-					t1["Name"] = "(" + t1["Name"].(string) + "[" + t1["i"].(string) + "])"
-					t1["i"] = t1["i"].(string) + "i"
-				} else if t1["Type"].(*Type).IsPoint {
-					t1["Name"] = "(*" + t1["Name"].(string) + ")"
-				}
-				t1["Type"] = t1["Type"].(*Type).Type
-				return t1
-			}
-			panic("TypeInfo(): Unsuported Type")
-		},
 		"TypeName": goTypeName,
 		"NeedN": func() string {
 			needN = true
@@ -63,6 +48,28 @@ func generateGolang(file *File) {
 				return "var n int"
 			}
 			return ""
+		},
+		"TypeInfo": func(t interface{}) map[string]interface{} {
+			switch t1 := t.(type) {
+			case *Field:
+				return map[string]interface{}{
+					"Type":   t1.Type,
+					"Name":   "s." + t1.Name,
+					"iCount": 0,
+					"i":      "i0",
+				}
+			case map[string]interface{}:
+				if t1["Type"].(*Type).IsArray {
+					t1["Name"] = fmt.Sprintf("(%s[i%d])", t1["Name"], t1["iCount"])
+					t1["iCount"] = t1["iCount"].(int) + 1
+					t1["i"] = fmt.Sprintf("i%d", t1["iCount"])
+				} else if t1["Type"].(*Type).IsPoint {
+					t1["Name"] = "(*" + t1["Name"].(string) + ")"
+				}
+				t1["Type"] = t1["Type"].(*Type).Type
+				return t1
+			}
+			panic("TypeInfo(): Unsuported Type")
 		},
 		"MarshalFunc": func(t map[string]interface{}) string {
 			ft := t["Type"].(*Type)

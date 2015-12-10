@@ -19,8 +19,9 @@ type Struct struct {
 }
 
 type Field struct {
-	Name string
-	Type *Type
+	Name     string
+	Type     *Type
+	IsFixLen bool
 }
 
 type Type struct {
@@ -56,14 +57,31 @@ func analyzeFile(filename string, src interface{}) *File {
 }
 
 func analyzeStruct(structName string, structType *ast.StructType) *Struct {
-	structInfo := Struct{Name: structName}
+	structInfo := &Struct{Name: structName}
 	for _, field := range structType.Fields.List {
-		structInfo.Fields = append(structInfo.Fields, &Field{
-			Name: field.Names[0].Name,
-			Type: analyzeType(field.Type),
-		})
+		typeInfo := analyzeType(field.Type)
+		isFixLen := analyzeFixLen(typeInfo)
+		for _, name := range field.Names {
+			structInfo.Fields = append(structInfo.Fields, &Field{
+				Name:     name.String(),
+				Type:     typeInfo,
+				IsFixLen: isFixLen,
+			})
+		}
 	}
-	return &structInfo
+	return structInfo
+}
+
+func analyzeFixLen(t *Type) bool {
+	if t.IsPoint {
+		return false
+	} else if t.IsArray {
+		if t.Len == "" {
+			return false
+		}
+		return analyzeFixLen(t.Type)
+	}
+	return t.Size != 0
 }
 
 func analyzeType(astType ast.Expr) *Type {
@@ -78,17 +96,17 @@ func analyzeType(astType ast.Expr) *Type {
 			typeInfo.Len = size.Value
 		}
 		if t, ok := t.Elt.(*ast.Ident); ok && t.Name == "byte" {
-			typeInfo.Size = 1
 			typeInfo.Name = "[]byte"
 			break
 		}
-		typeInfo.Size = 2
 		typeInfo.IsArray = true
 		typeInfo.Type = analyzeType(t.Elt)
 	case *ast.Ident:
 		typeInfo.Name = t.Name
 		switch t.Name {
-		case "int8", "uint8", "byte", "bool", "string":
+		case "string":
+			typeInfo.Size = 0
+		case "int8", "uint8", "byte", "bool":
 			typeInfo.Size = 1
 		case "int16", "uint16":
 			typeInfo.Size = 2
