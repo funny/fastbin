@@ -1,5 +1,172 @@
 package main
 import "github.com/funny/binary"
+func (s *SizedArray) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalBuffer(&buf)
+	data = buf.Data[:buf.WritePos]
+	return
+}
+func (s *SizedArray) UnmarshalBinary(data []byte) error {
+	s.UnmarshalBuffer(&binary.Buffer{Data: data})
+	return nil
+}
+func (s *SizedArray) BinarySize() (n int) {
+	for i := 0; i < 10; i++ {
+		n += 1
+	}
+	for i := 0; i < 10; i++ {
+		n += 1
+	}
+	for i := 0; i < 10; i++ {
+		n += 1
+	}
+	for i := 0; i < 10; i++ {
+		n += 2
+	}
+	for i := 0; i < 10; i++ {
+		n += 2
+	}
+	for i := 0; i < 10; i++ {
+		n += 4
+	}
+	for i := 0; i < 10; i++ {
+		n += 4
+	}
+	for i := 0; i < 10; i++ {
+		n += 8
+	}
+	for i := 0; i < 10; i++ {
+		n += 8
+	}
+	for i := 0; i < 10; i++ {
+		n += 8
+	}
+	for i := 0; i < 10; i++ {
+		n += 8
+	}
+	for i := 0; i < 10; i++ {
+		n += 2
+		n += len((s.Field11[i]))
+	}
+	for i := 0; i < 10; i++ {
+		n += 4
+	}
+	for i := 0; i < 10; i++ {
+		n += 8
+	}
+	for i := 0; i < 10; i++ {
+		n += (s.Field14[i]).BinarySize()
+	}
+	for i := 0; i < 10; i++ {
+		n += (s.Field15[i]).BinarySize()
+	}
+	return
+}
+func (s *SizedArray) MarshalBuffer(buf *binary.Buffer) {
+	for i := 0; i < 10; i++ {
+		if s.Field0[i] {
+			buf.WriteUint8(1)
+		} else {
+			buf.WriteUint8(0)
+		}
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteInt8((s.Field1[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteUint8((s.Field2[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteInt16LE((s.Field3[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteUint16LE((s.Field4[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteInt32LE((s.Field5[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteUint32LE((s.Field6[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteInt64LE((s.Field7[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteUint64LE((s.Field8[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteIntLE((s.Field9[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteUintLE((s.Field10[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteUint16LE(uint16(len((s.Field11[i]))))
+		buf.WriteString((s.Field11[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteFloat32LE((s.Field12[i]))
+	}
+	for i := 0; i < 10; i++ {
+		buf.WriteFloat64LE((s.Field13[i]))
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field14[i]).MarshalBuffer(buf)
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field15[i]).MarshalBuffer(buf)
+	}
+}
+func (s *SizedArray) UnmarshalBuffer(buf *binary.Buffer) {
+	for i := 0; i < 10; i++ {
+		(s.Field0[i]) = buf.ReadUint8() > 0
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field1[i]) = buf.ReadInt8()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field2[i]) = buf.ReadUint8()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field3[i]) = buf.ReadInt16LE()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field4[i]) = buf.ReadUint16LE()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field5[i]) = buf.ReadInt32LE()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field6[i]) = buf.ReadUint32LE()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field7[i]) = buf.ReadInt64LE()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field8[i]) = buf.ReadUint64LE()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field9[i]) = buf.ReadIntLE()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field10[i]) = buf.ReadUintLE()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field11[i]) = buf.ReadString(int(buf.ReadUint16LE()))
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field12[i]) = buf.ReadFloat32LE()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field13[i]) = buf.ReadFloat64LE()
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field14[i]).UnmarshalBuffer(buf)
+	}
+	for i := 0; i < 10; i++ {
+		(s.Field15[i]).UnmarshalBuffer(buf)
+	}
+}
 func (s *ComplexCase) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
 	s.MarshalBuffer(&buf)
@@ -986,173 +1153,6 @@ func (s *Arrays) UnmarshalBuffer(buf *binary.Buffer) {
 	n = int(buf.ReadUint16LE())
 	s.Field15 = make([]MyType1, n)
 	for i := 0; i < n; i++ {
-		(s.Field15[i]).UnmarshalBuffer(buf)
-	}
-}
-func (s *SizedArray) MarshalBinary() (data []byte, err error) {
-	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalBuffer(&buf)
-	data = buf.Data[:buf.WritePos]
-	return
-}
-func (s *SizedArray) UnmarshalBinary(data []byte) error {
-	s.UnmarshalBuffer(&binary.Buffer{Data: data})
-	return nil
-}
-func (s *SizedArray) BinarySize() (n int) {
-	for i := 0; i < 10; i++ {
-		n += 1
-	}
-	for i := 0; i < 10; i++ {
-		n += 1
-	}
-	for i := 0; i < 10; i++ {
-		n += 1
-	}
-	for i := 0; i < 10; i++ {
-		n += 2
-	}
-	for i := 0; i < 10; i++ {
-		n += 2
-	}
-	for i := 0; i < 10; i++ {
-		n += 4
-	}
-	for i := 0; i < 10; i++ {
-		n += 4
-	}
-	for i := 0; i < 10; i++ {
-		n += 8
-	}
-	for i := 0; i < 10; i++ {
-		n += 8
-	}
-	for i := 0; i < 10; i++ {
-		n += 8
-	}
-	for i := 0; i < 10; i++ {
-		n += 8
-	}
-	for i := 0; i < 10; i++ {
-		n += 2
-		n += len((s.Field11[i]))
-	}
-	for i := 0; i < 10; i++ {
-		n += 4
-	}
-	for i := 0; i < 10; i++ {
-		n += 8
-	}
-	for i := 0; i < 10; i++ {
-		n += (s.Field14[i]).BinarySize()
-	}
-	for i := 0; i < 10; i++ {
-		n += (s.Field15[i]).BinarySize()
-	}
-	return
-}
-func (s *SizedArray) MarshalBuffer(buf *binary.Buffer) {
-	for i := 0; i < 10; i++ {
-		if s.Field0[i] {
-			buf.WriteUint8(1)
-		} else {
-			buf.WriteUint8(0)
-		}
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteInt8((s.Field1[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteUint8((s.Field2[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteInt16LE((s.Field3[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteUint16LE((s.Field4[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteInt32LE((s.Field5[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteUint32LE((s.Field6[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteInt64LE((s.Field7[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteUint64LE((s.Field8[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteIntLE((s.Field9[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteUintLE((s.Field10[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteUint16LE(uint16(len((s.Field11[i]))))
-		buf.WriteString((s.Field11[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteFloat32LE((s.Field12[i]))
-	}
-	for i := 0; i < 10; i++ {
-		buf.WriteFloat64LE((s.Field13[i]))
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field14[i]).MarshalBuffer(buf)
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field15[i]).MarshalBuffer(buf)
-	}
-}
-func (s *SizedArray) UnmarshalBuffer(buf *binary.Buffer) {
-	for i := 0; i < 10; i++ {
-		(s.Field0[i]) = buf.ReadUint8() > 0
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field1[i]) = buf.ReadInt8()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field2[i]) = buf.ReadUint8()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field3[i]) = buf.ReadInt16LE()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field4[i]) = buf.ReadUint16LE()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field5[i]) = buf.ReadInt32LE()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field6[i]) = buf.ReadUint32LE()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field7[i]) = buf.ReadInt64LE()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field8[i]) = buf.ReadUint64LE()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field9[i]) = buf.ReadIntLE()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field10[i]) = buf.ReadUintLE()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field11[i]) = buf.ReadString(int(buf.ReadUint16LE()))
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field12[i]) = buf.ReadFloat32LE()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field13[i]) = buf.ReadFloat64LE()
-	}
-	for i := 0; i < 10; i++ {
-		(s.Field14[i]).UnmarshalBuffer(buf)
-	}
-	for i := 0; i < 10; i++ {
 		(s.Field15[i]).UnmarshalBuffer(buf)
 	}
 }

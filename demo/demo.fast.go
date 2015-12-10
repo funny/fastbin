@@ -1,5 +1,30 @@
 package main
 import "github.com/funny/binary"
+func (s *PhoneNum) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalBuffer(&buf)
+	data = buf.Data[:buf.WritePos]
+	return
+}
+func (s *PhoneNum) UnmarshalBinary(data []byte) error {
+	s.UnmarshalBuffer(&binary.Buffer{Data: data})
+	return nil
+}
+func (s *PhoneNum) BinarySize() (n int) {
+	n += 2
+	n += len(s.Number)
+	n += 4
+	return
+}
+func (s *PhoneNum) MarshalBuffer(buf *binary.Buffer) {
+	buf.WriteUint16LE(uint16(len(s.Number)))
+	buf.WriteString(s.Number)
+	buf.WriteInt32LE(s.Type)
+}
+func (s *PhoneNum) UnmarshalBuffer(buf *binary.Buffer) {
+	s.Number = buf.ReadString(int(buf.ReadUint16LE()))
+	s.Type = buf.ReadInt32LE()
+}
 func (s *AddressBook) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
 	s.MarshalBuffer(&buf)
@@ -74,29 +99,4 @@ func (s *Person) UnmarshalBuffer(buf *binary.Buffer) {
 	for i := 0; i < n; i++ {
 		(s.Phone[i]).UnmarshalBuffer(buf)
 	}
-}
-func (s *PhoneNum) MarshalBinary() (data []byte, err error) {
-	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalBuffer(&buf)
-	data = buf.Data[:buf.WritePos]
-	return
-}
-func (s *PhoneNum) UnmarshalBinary(data []byte) error {
-	s.UnmarshalBuffer(&binary.Buffer{Data: data})
-	return nil
-}
-func (s *PhoneNum) BinarySize() (n int) {
-	n += 2
-	n += len(s.Number)
-	n += 4
-	return
-}
-func (s *PhoneNum) MarshalBuffer(buf *binary.Buffer) {
-	buf.WriteUint16LE(uint16(len(s.Number)))
-	buf.WriteString(s.Number)
-	buf.WriteInt32LE(s.Type)
-}
-func (s *PhoneNum) UnmarshalBuffer(buf *binary.Buffer) {
-	s.Number = buf.ReadString(int(buf.ReadUint16LE()))
-	s.Type = buf.ReadInt32LE()
 }

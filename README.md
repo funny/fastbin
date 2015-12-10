@@ -77,7 +77,10 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 | []MyType | 2 + sum(MyType.BinarySize()) |
 | [N]MyType | sum(MyType.BinarySize()) |
 
-更详细的内容请参考生成后的代码：[demo/demo.fast.go](https://github.com/funny/fastbin/blob/master/demo/demo.fast.go)
+更详细的内容请参考生成后的代码：
+
+* [demo/demo.fast.go](https://github.com/funny/fastbin/blob/master/demo/demo.fast.go)
+* [demo/types.fast.go](https://github.com/funny/fastbin/blob/master/demo/types.fast.go)
 
 关于体积和效率我按云风给sproto做的测试里的数据结构和数据做了测试。
 
