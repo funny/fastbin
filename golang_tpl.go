@@ -23,8 +23,6 @@ func (s *{{.Name}}) BinarySize() (n int) {
 	n = ` + line(`{{range .Fields}}
 		{{if .IsFixLen}}
 			{{template "FixLenSize" .Type}}
-		{{else if .Type}}
-			{{template "TypeHeadSize" .Type}}
 		{{end}}
 	{{end}}0`) + `
 	{{range .Fields}}
@@ -56,31 +54,24 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 		{{.Size}} +
 	{{end}}
 {{end}}
-
-{{define "TypeHeadSize"}}
-	{{if .IsPoint}}
-		1 + {{template "TypeHeadSize" .Type}}
-	{{else if and .IsArray (not .Len)}}
-		2 + {{template "TypeHeadSize" .Type}}
-	{{else if and (not .Len) (or (eq .Name "string") (eq .Name "[]byte"))}}
-		2 +
-	{{end}}
-{{end}}
 `) + `
 {{define "TypeSize"}}
 	{{if .Type.IsArray}}
-		{{if not .Type.Len}}{{NeedN}}{{end}}
+		{{if not .Type.Len}}
+		n += 2{{NeedN}}
+		{{end}}
 		for {{.i}} := 0; {{.i}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.i}}++ {
 			{{template "TypeSize" (TypeInfo .)}}
 		}
 	{{else if .Type.IsPoint}}
+		n += 1
 		if {{.Name}} != nil {
 			{{template "TypeSize" (TypeInfo .)}}
 		}
 	{{else if .Type.IsUnknow}}
 		n += {{.Name}}.BinarySize()
 	{{else if or (eq .Type.Name "string") (eq .Type.Name "[]byte")}}
-		n += len({{.Name}})
+		n += {{if not .Type.Len}}2 + {{end}}len({{.Name}})
 	{{else}}
 		n += {{.Type.Size}}
 	{{end}}

@@ -11,52 +11,68 @@ func (s *Points) UnmarshalBinary(data []byte) error {
 	return nil
 }
 func (s *Points) BinarySize() (n int) {
-	n = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 0
+	n = 0
+	n += 1
 	if s.Field0 != nil {
 		n += 1
 	}
+	n += 1
 	if s.Field1 != nil {
 		n += 1
 	}
+	n += 1
 	if s.Field2 != nil {
 		n += 1
 	}
+	n += 1
 	if s.Field3 != nil {
 		n += 2
 	}
+	n += 1
 	if s.Field4 != nil {
 		n += 2
 	}
+	n += 1
 	if s.Field5 != nil {
 		n += 4
 	}
+	n += 1
 	if s.Field6 != nil {
 		n += 4
 	}
+	n += 1
 	if s.Field7 != nil {
 		n += 8
 	}
+	n += 1
 	if s.Field8 != nil {
 		n += 8
 	}
+	n += 1
 	if s.Field9 != nil {
 		n += 8
 	}
+	n += 1
 	if s.Field10 != nil {
 		n += 8
 	}
+	n += 1
 	if s.Field11 != nil {
-		n += len((*s.Field11))
+		n += 2 + len((*s.Field11))
 	}
+	n += 1
 	if s.Field12 != nil {
 		n += 4
 	}
+	n += 1
 	if s.Field13 != nil {
 		n += 8
 	}
+	n += 1
 	if s.Field14 != nil {
 		n += (*s.Field14).BinarySize()
 	}
+	n += 1
 	if s.Field15 != nil {
 		n += (*s.Field15).BinarySize()
 	}
@@ -228,52 +244,68 @@ func (s *Arrays) UnmarshalBinary(data []byte) error {
 	return nil
 }
 func (s *Arrays) BinarySize() (n int) {
-	n = 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 0
+	n = 0
+	n += 2
 	for i0 := 0; i0 < len(s.Field0); i0++ {
 		n += 1
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field1); i0++ {
 		n += 1
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field2); i0++ {
 		n += 1
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field3); i0++ {
 		n += 2
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field4); i0++ {
 		n += 2
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field5); i0++ {
 		n += 4
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field6); i0++ {
 		n += 4
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field7); i0++ {
 		n += 8
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field8); i0++ {
 		n += 8
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field9); i0++ {
 		n += 8
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field10); i0++ {
 		n += 8
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field11); i0++ {
-		n += len((s.Field11[i0]))
+		n += 2 + len((s.Field11[i0]))
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field12); i0++ {
 		n += 4
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field13); i0++ {
 		n += 8
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field14); i0++ {
 		n += (s.Field14[i0]).BinarySize()
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field15); i0++ {
 		n += (s.Field15[i0]).BinarySize()
 	}
@@ -446,7 +478,7 @@ func (s *SizedArray) UnmarshalBinary(data []byte) error {
 func (s *SizedArray) BinarySize() (n int) {
 	n = 10*1 + 10*1 + 10*1 + 10*2 + 10*2 + 10*4 + 10*4 + 10*8 + 10*8 + 10*8 + 10*8 + 10*4 + 10*8 + 0
 	for i0 := 0; i0 < 10; i0++ {
-		n += len((s.Field11[i0]))
+		n += 2 + len((s.Field11[i0]))
 	}
 	for i0 := 0; i0 < 10; i0++ {
 		n += (s.Field14[i0]).BinarySize()
@@ -572,52 +604,70 @@ func (s *ComplexCase) UnmarshalBinary(data []byte) error {
 	return nil
 }
 func (s *ComplexCase) BinarySize() (n int) {
-	n = 1 + 1 + 2 + 2 + 1 + 1 + 2 + 1 + 2 + 1 + 2 + 2 + 2 + 2 + 2 + 1 + 2 + 0
+	n = 0
+	n += 1
 	if s.PointOfPoint != nil {
+		n += 1
 		if (*s.PointOfPoint) != nil {
-			n += len((*(*s.PointOfPoint)))
+			n += 2 + len((*(*s.PointOfPoint)))
 		}
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.ArrayOfPoint); i0++ {
+		n += 1
 		if (s.ArrayOfPoint[i0]) != nil {
 			n += 8
 		}
 	}
+	n += 1
 	if s.PointOfArray != nil {
+		n += 2
 		for i0 := 0; i0 < len((*s.PointOfArray)); i0++ {
 			n += 8
 		}
 	}
+	n += 1
 	if s.PointOfArrayOfPoint != nil {
+		n += 2
 		for i0 := 0; i0 < len((*s.PointOfArrayOfPoint)); i0++ {
+			n += 1
 			if ((*s.PointOfArrayOfPoint)[i0]) != nil {
-				n += len((*((*s.PointOfArrayOfPoint)[i0])))
+				n += 2 + len((*((*s.PointOfArrayOfPoint)[i0])))
 			}
 		}
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.ArrayOfArray); i0++ {
+		n += 2
 		for i1 := 0; i1 < len((s.ArrayOfArray[i0])); i1++ {
-			n += len(((s.ArrayOfArray[i0])[i1]))
+			n += 2 + len(((s.ArrayOfArray[i0])[i1]))
 		}
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.ArrayOfSizedArray); i0++ {
 		for i1 := 0; i1 < 10; i1++ {
 			n += 8
 		}
 	}
 	for i0 := 0; i0 < 10; i0++ {
+		n += 2
 		for i1 := 0; i1 < len((s.SizedArrayOfArray[i0])); i1++ {
 			n += 8
 		}
 	}
+	n += 1
 	if s.WTF != nil {
+		n += 2
 		for i0 := 0; i0 < len((*s.WTF)); i0++ {
 			for i1 := 0; i1 < 10; i1++ {
+				n += 1
 				if (((*s.WTF)[i0])[i1]) != nil {
+					n += 1
 					if (*(((*s.WTF)[i0])[i1])) != nil {
 						for i2 := 0; i2 < 11; i2++ {
+							n += 2
 							for i3 := 0; i3 < len(((*(*(((*s.WTF)[i0])[i1])))[i2])); i3++ {
-								n += len((((*(*(((*s.WTF)[i0])[i1])))[i2])[i3]))
+								n += 2 + len((((*(*(((*s.WTF)[i0])[i1])))[i2])[i3]))
 							}
 						}
 					}
@@ -805,16 +855,21 @@ func (s *MyType1) UnmarshalBinary(data []byte) error {
 	return nil
 }
 func (s *MyType1) BinarySize() (n int) {
-	n = 2 + 2 + 1 + 1 + 2 + 1 + 2 + 0
+	n = 0
+	n += 2
 	for i0 := 0; i0 < len(s.Field1); i0++ {
 		n += (s.Field1[i0]).BinarySize()
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field2); i0++ {
+		n += 1
 		if (s.Field2[i0]) != nil {
 			n += (*(s.Field2[i0])).BinarySize()
 		}
 	}
+	n += 1
 	if s.Field3 != nil {
+		n += 2
 		for i0 := 0; i0 < len((*s.Field3)); i0++ {
 			n += ((*s.Field3)[i0]).BinarySize()
 		}
@@ -823,20 +878,26 @@ func (s *MyType1) BinarySize() (n int) {
 		n += (s.Field4[i0]).BinarySize()
 	}
 	for i0 := 0; i0 < 11; i0++ {
+		n += 1
 		if (s.Field5[i0]) != nil {
 			n += (*(s.Field5[i0])).BinarySize()
 		}
 	}
+	n += 1
 	if s.Field6 != nil {
 		for i0 := 0; i0 < 12; i0++ {
 			n += ((*s.Field6)[i0]).BinarySize()
 		}
 	}
+	n += 2
 	for i0 := 0; i0 < len(s.Field7); i0++ {
 		for i1 := 0; i1 < 13; i1++ {
+			n += 1
 			if ((s.Field7[i0])[i1]) != nil {
+				n += 2
 				for i2 := 0; i2 < len((*((s.Field7[i0])[i1]))); i2++ {
 					for i3 := 0; i3 < 14; i3++ {
+						n += 1
 						if (((*((s.Field7[i0])[i1]))[i2])[i3]) != nil {
 							n += (*(((*((s.Field7[i0])[i1]))[i2])[i3])).BinarySize()
 						}
@@ -997,8 +1058,8 @@ func (s *SimpleTypes) UnmarshalBinary(data []byte) error {
 	return nil
 }
 func (s *SimpleTypes) BinarySize() (n int) {
-	n = 1 + 1 + 1 + 2 + 2 + 4 + 4 + 8 + 8 + 8 + 8 + 2 + 4 + 8 + 0
-	n += len(s.Field11)
+	n = 1 + 1 + 1 + 2 + 2 + 4 + 4 + 8 + 8 + 8 + 8 + 4 + 8 + 0
+	n += 2 + len(s.Field11)
 	n += s.Field14.BinarySize()
 	return
 }
