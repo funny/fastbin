@@ -39,57 +39,57 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 
 | 类型 | 字节数 |
 |------|------|
-| int8, uint8, byte, bool | 1 |
-| int16, uint16 | 2 |
-| int32, uint32, float32 | 4 |
-| int, uint, int64, uint64, float64 | 8 |
-| string, []byte | 2 + N |
+| `int8`, `uint8`, `byte`, `bool | 1 |
+| `int16`, `uint16` | 2 |
+| `int32`, `uint32`, `float32` | 4 |
+| `int`, `uint`, `int64`, `uint64`, `float64` | 8 |
+| `string`, `[]byte` | 2 + N |
 
 支持指针，指针类型比普通类型额外多一个字节区分空指针，指针值为0时表示空指针，空指针的后续内容长度为0：
 
 | 类型 | 字节数 |
 |------|------|
-| *int8, *uint8, *byte, *bool | 1 or 1 + 1 |
-| *int16, *uint16 | 1 or 1 + 2 |
-| *int32, *uint32, *float32 | 1 or 1 + 4 |
-| *int, *uint, *int64, *uint64, *float64 | 1 or 1 + 8 |
+| `*int8`, `*uint8`, `*byte`, `*bool` | 1 or 1 + 1 |
+| `*int16`, `*uint16` | 1 or 1 + 2 |
+| `*int32`, `*uint32`, `*float32` | 1 or 1 + 4 |
+| `*int`, `*uint`, `*int64`, `*uint64`, `*float64` | 1 or 1 + 8 |
 
 支持变长数组，变长数组采用2个字节存储数组元素个数：
 
 | 类型 | 字节数 |
 |------|------|
-| []int8, []uint8, []byte, []bool, string | 2 + N |
-| []int16, []uint16 | 2 + N * 2 |
-| []int32, []uint32, []float32 | 2 + N * 4 |
-| []int64, []uint64, []float64 | 2 + N * 8 |
+| `[]int8, `[]uint8`, `[]byte`, `[]bool`, `string` | 2 + N |
+| `[]int16, `[]uint16` | 2 + N * 2 |
+| `[]int32, `[]uint32`, `[]float32` | 2 + N * 4 |
+| `[]int64`, `[]uint64`, `[]float64` | 2 + N * 8 |
 
 支持定长数组，定长数组顺序循环序列化，不需要额外长度信息：
 
 | 类型 | 字节数 |
 |------|------|
-| [N]int8, [N]uint8, [N]byte, [N]bool | N |
-| [N]int16, [N]uint16 | N * 2 |
-| [N]int32, [N]uint32, [N]float32 | N * 4 |
-| [N]int64, [N]uint64, [N]float64 | N * 8 |
+| `[N]int8`, `[N]uint8`, `[N]byte`, `[N]bool` | N |
+| `[N]int16`, `[N]uint16` | N * 2 |
+| `[N]int32`, `[N]uint32`, `[N]float32` | N * 4 |
+| `[N]int64`, `[N]uint64`, `[N]float64` | N * 8 |
 
 支持结构体嵌套和自定义类型，基本类型以为的所有其它类型都通过`MarshalBuffer``和`UnmarshalBuffer`进行序列化和反序列化：
 
 | 类型 | 字节数 |
 |------|------|
-| MyType | MyType.BinarySize() |
-| *MyType | 1 or 1 + MyType.BinarySize() |
-| []MyType | 2 + sum(MyType.BinarySize()) |
-| [N]MyType | sum(MyType.BinarySize()) |
+| `MyType` | MyType.BinarySize() |
+| `*MyType` | 1 or 1 + MyType.BinarySize() |
+| `[]MyType` | 2 + sum(MyType.BinarySize()) |
+| `[N]MyType` | sum(MyType.BinarySize()) |
 
 支持多维数组等复杂数据结构：
 
 | 类型 | 说明 |
 |------|-----|
-| [][]int | 二维数组 |
-| [10][]*int | 第一唯定长的二维数组 |
-| **int | 指向指针的指针 |
-| *[][]int | 指向二维数组的指针 |
-| *[10]*[]**int | 指向定长的指针的指针的数组的指针的数组的指针 |
+| `[][]int` | 二维数组 |
+| `[10][]*int` | 第一唯定长的二维数组 |
+| `**int` | 指向指针的指针 |
+| `*[][]int` | 指向二维数组的指针 |
+| `*[10]*[]**int` | 指向定长的指针的指针的数组的指针的数组的指针 |
 
 更详细的内容请参考生成后的代码：
 
