@@ -10,7 +10,7 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 
 更多介绍：[http://zhuanlan.zhihu.com/idada/20410055](http://zhuanlan.zhihu.com/idada/20410055)
 
-![title](https://pic4.zhimg.com/170040a06d22f14659ea5937898fafaf_b.jpg)
+![title](https://camo.githubusercontent.com/a81596e605df0a3dda051668475f7ce1a85dc290/687474703a2f2f66616e6172752e636f6d2f73706f6e6765626f622d73717561726570616e74732f696d6167652f32363632382d73706f6e6765626f622d73717561726570616e74732d746f2d646f2d6c6973742e6a7067)
 
 Go代码生成
 =========
