@@ -2,7 +2,7 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 介绍
 ====
 
-这是小工具可以分析指定代码中的Go结构体，并生成对应二进制序列化和反序列化代码，它可以生成的Go代码符合[`encoding.BinaryMarshaler`](https://golang.org/pkg/encoding/#BinaryMarshaler)和[`encoding.BinaryUnmarshaler`](https://golang.org/pkg/encoding/#BinaryUnmarshaler)接口要求。
+这个小工具可以分析指定代码中的Go结构体，并生成对应二进制序列化和反序列化代码，它可以生成的Go代码符合[`encoding.BinaryMarshaler`](https://golang.org/pkg/encoding/#BinaryMarshaler)和[`encoding.BinaryUnmarshaler`](https://golang.org/pkg/encoding/#BinaryUnmarshaler)接口要求。
 
 另外支持更高效的序列化和反序列化方式，可配合[`github.com/funny/link`](https://github.com/funny/link)内置的分包协议使用。
 
@@ -12,6 +12,8 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 
 特性
 ====
+
+最大的特性就是没有特性。
 
 ![title](http://fanaru.com/spongebob-squarepants/image/26628-spongebob-squarepants-to-do-list.jpg)
 
