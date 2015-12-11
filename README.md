@@ -11,21 +11,71 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 特性
 ====
 
-fastbin使用的序列化格式并没有任何特别之处，没有Protobuf那样的可选字段也没有Flatbuffer那样的随机访问功能，简单到可以说是简陋。之所以开发这个工具完全是从项目开发流程的角度出发。
+fastbin使用的序列化格式并没有任何特别之处，没有Protobuf那样的可选字段也没有Flatbuffer那样的随机访问功能，简单到可以说是简陋。
+
+之所以开发这个工具完全是从项目开发流程的角度出发。
 
 在我们过往的项目中，一直用一套自定义的协议描述语言做协议描述，然后用这些协议描述文档来生成对应的服务端和客户度代码，这也是Protobuf、Flatbuffer等工具的流程。
 
 这种基于配置的开发流程有个问题，在开发的时候经常需要在配置文件、命令行、生成物、功能代码之间来回切换，这样的切换很容易打断功能开发的连贯性。
 
-说个关于工具和思维连贯性的笑话，有一次我要激活个软件，SN在我Gmail邮箱里，我打开Gmail邮箱时发现公司的自动科学上网打不开Gmail，于是我就开始研究公司的科学上网哪个环节出问题，最后定为到是dnsmasq的配置问题，我就去整配置。等我配置好，打开Gmail了，我对着Gmail在那里想了好久我刚才是要干什么来着？
+关于思维连贯性，我有个亲身经历的笑话。
 
-其实这样的事情也会发生在开发过程中，我们项目开发过程中会涉及到各种工具各种配置，这些事情每一样都分散一点精力，其实无形之中给我们带来的很多损耗。这种精力损耗不但影响开发效率甚至也影响到产品质量和开发人员的积极性，因为人的精力是有限的，当一个事情做起来步骤很多很繁琐的时候，人自然而然的就会减少做的次数，甚至从潜意识上排斥去做它。
+有一次我要激活个软件，SN在我Gmail邮箱里，我打开Gmail邮箱时发现公司的自动科学上网打不开Gmail，于是我就开始研究公司的科学上网哪个环节出问题，最后定为到是dnsmasq的配置问题，我就去整配置。等我配置好，打开Gmail了，我对着Gmail在那里想了好久我刚才是要干什么来着？
+
+其实这样的事情也会发生在开发过程中，我们项目开发过程中会涉及到各种工具各种配置，这些事情每一样都分散我们一点精力，其实无形之中给我们带来的很多损耗。这种精力损耗不但影响开发效率甚至也影响到产品质量和做事的积极性，因为人的精力是有限的，当一个事情做起来步骤很多很繁琐的时候，人自然而然的就会减少做的次数，甚至从潜意识上排斥去做它。
 
 所以我希望我们的项目开发过程中，工具可以是在手边的，拿来就用，用完放下，不干扰，不分散精力。这样大家可以更专注于项目本身，而不是开发流程中的某个环节。
 
 我思索下来，觉得要做到这一点，最直接的方式就是用代码自身作为配置，工具反过来从代码里提取信息，这样整个开发流程中就不再需要来回切换了。
 
 所以fastbin的特性就是零配置，fastbin的fast并不是指它的执行效率有多快数据结构有多优秀，而是指它的开发效率高，按需求写代码就可以用了。
+
+Go代码生成
+=========
+
+这个工具将为指定代码中的每个结构体生成以下方法：
+
+```go
+type FastBin interface {
+	// 这个方法用于测量序列化后的数据长度
+	// 用于在反序列化前一次性准备好足够大的内存空间
+	// 请参考 github.com/funny/link 文档中分包协议效率的优化提示
+	BinarySize() (n int)
+
+	// 这个方法实现了 encoding.BinaryMarshaler 接口
+	// 由于接口的要求是由内部返回[]byte，所以无法优化[]byte的重用
+	// 建议在实际项目中避免使用
+	MarshalBinary() (data []byte, err error)
+
+	// 这个方法实现了 encoding.BinaryUnmarshaler 接口
+	UnmarshalBinary(data []byte) error
+
+	// 将结构体的内容序列化到Buffer中
+	// 内部不会动态扩容，buf的内存空间必须足够长度
+	MarshalBuffer(buf *binary.Buffer)
+
+	// 从Buffer中反序列化出结构体数据
+	// buff的内存空间必须足够长度
+	UnmarshalBuffer(buf *binary.Buffer)
+}
+```
+
+建议结合`go generate`命令使用，在需要生成代码的文件开头加上`go generate`的编译指令：
+
+```go
+//go:generate $GOPATH/bin/fastbin
+package demo
+
+type Test struct {
+	Field1 int
+	Field2 string
+}
+```
+
+如果你的`$GOPATH/bin`在`$PATH`环境变量里，可以用更简单的指令：`//go:generate fastbin`
+
+在需要生成代码的包的根路径执行`go generate ./...`即可生成所有代码，也可以单独指定需要生成的文件，例如：`go generate demo.go`。
 
 格式
 ====
@@ -143,49 +193,3 @@ Unmarshal 1M times: 638.01296ms
 反序列化过程因为有对象创建，所以开销较大，以后可以考虑加入对象池进行优化。
 
 注：云风给sproto的测试是在lua里的，所以两者执行时间不具有可比性。
-
-Go代码生成
-=========
-
-这个工具将为指定代码中的每个结构体生成以下方法：
-
-```go
-type FastBin interface {
-	// 这个方法用于测量序列化后的数据长度
-	// 用于在反序列化前一次性准备好足够大的内存空间
-	// 请参考 github.com/funny/link 文档中分包协议效率的优化提示
-	BinarySize() (n int)
-
-	// 这个方法实现了 encoding.BinaryMarshaler 接口
-	// 由于接口的要求是由内部返回[]byte，所以无法优化[]byte的重用
-	// 建议在实际项目中避免使用
-	MarshalBinary() (data []byte, err error)
-
-	// 这个方法实现了 encoding.BinaryUnmarshaler 接口
-	UnmarshalBinary(data []byte) error
-
-	// 将结构体的内容序列化到Buffer中
-	// 内部不会动态扩容，buf的内存空间必须足够长度
-	MarshalBuffer(buf *binary.Buffer)
-
-	// 从Buffer中反序列化出结构体数据
-	// buff的内存空间必须足够长度
-	UnmarshalBuffer(buf *binary.Buffer)
-}
-```
-
-建议结合`go generate`命令使用，在需要生成代码的文件开头加上`go generate`的编译指令：
-
-```go
-//go:generate $GOPATH/bin/fastbin
-package demo
-
-type Test struct {
-	Field1 int
-	Field2 string
-}
-```
-
-如果你的`$GOPATH/bin`在`$PATH`环境变量里，可以用更简单的指令：`//go:generate fastbin`
-
-在需要生成代码的包的根路径执行`go generate ./...`即可生成所有代码，也可以单独指定需要生成的文件，例如：`go generate demo.go`。
