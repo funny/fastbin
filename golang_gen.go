@@ -11,30 +11,14 @@ import (
 	"text/template"
 )
 
-func line(s string) string {
-	return strings.Replace(
-		strings.Replace(s, "\n", "", -1), "\t", "", -1,
-	)
-}
-
-func goTypeName(t *Type) string {
-	if t.IsPoint {
-		return "*" + goTypeName(t.Type)
-	} else if t.IsArray {
-		return fmt.Sprintf("[%s]%s", t.Len, goTypeName(t.Type))
-	} else if t.Name == "[]byte" {
-		return fmt.Sprintf("[%s]byte", t.Len)
-	}
-	return t.Name
-}
-
 func generateGolang(file *File) {
-	var bf bytes.Buffer
-
 	needN := false
 
-	funcMap := template.FuncMap{
-		"TypeName": goTypeName,
+	tpl := template.Must(template.New("code").Funcs(template.FuncMap{
+		"TypeName":      goTypeName,
+		"TypeInfo":      goTypeInfo,
+		"MarshalFunc":   goMarshalFunc,
+		"UnmarshalFunc": goUnmarshalFunc,
 		"SetNeedN": func() string {
 			needN = true
 			return ""
@@ -46,130 +30,19 @@ func generateGolang(file *File) {
 		"IsNeedN": func() bool {
 			return needN
 		},
-		"TypeInfo": func(t interface{}) map[string]interface{} {
-			switch t1 := t.(type) {
-			case *Field:
-				return map[string]interface{}{
-					"Type":   t1.Type,
-					"Name":   "s." + t1.Name,
-					"iCount": 0,
-					"i":      "i0",
-				}
-			case map[string]interface{}:
-				if t1["Type"].(*Type).IsArray {
-					t1["Name"] = fmt.Sprintf("%s[i%d]", t1["Name"], t1["iCount"])
-					t1["iCount"] = t1["iCount"].(int) + 1
-					t1["i"] = fmt.Sprintf("i%d", t1["iCount"])
-				} else if t1["Type"].(*Type).IsPoint {
-					t1["Name"] = "(*" + t1["Name"].(string) + ")"
-				}
-				t1["Type"] = t1["Type"].(*Type).Type
-				return t1
-			}
-			panic("TypeInfo(): Unsuported Type")
-		},
-		"MarshalFunc": func(t map[string]interface{}) string {
-			ft := t["Type"].(*Type)
-			var f = t["Name"].(string)
-			var buf bytes.Buffer
-			switch ft.Name {
-			case "bool":
-				fmt.Fprintf(&buf, "if %s { buf.WriteUint8(1) } else { buf.WriteUint8(0) }", f)
-			case "int":
-				fmt.Fprintf(&buf, "buf.WriteIntLE(%s)", f)
-			case "uint":
-				fmt.Fprintf(&buf, "buf.WriteUintLE(%s)", f)
-			case "int8":
-				fmt.Fprintf(&buf, "buf.WriteInt8(%s)", f)
-			case "uint8", "byte":
-				fmt.Fprintf(&buf, "buf.WriteUint8(%s)", f)
-			case "int16":
-				fmt.Fprintf(&buf, "buf.WriteInt16LE(%s)", f)
-			case "uint16":
-				fmt.Fprintf(&buf, "buf.WriteUint16LE(%s)", f)
-			case "int32":
-				fmt.Fprintf(&buf, "buf.WriteInt32LE(%s)", f)
-			case "uint32":
-				fmt.Fprintf(&buf, "buf.WriteUint32LE(%s)", f)
-			case "int64":
-				fmt.Fprintf(&buf, "buf.WriteInt64LE(%s)", f)
-			case "uint64":
-				fmt.Fprintf(&buf, "buf.WriteUint64LE(%s)", f)
-			case "float32":
-				fmt.Fprintf(&buf, "buf.WriteFloat32LE(%s)", f)
-			case "float64":
-				fmt.Fprintf(&buf, "buf.WriteFloat64LE(%s)", f)
-			case "string":
-				fmt.Fprintf(&buf, "buf.WriteUint16LE(uint16(len(%s)))\nbuf.WriteString(%s)", f, f)
-			case "[]byte":
-				if ft.Len == "" {
-					fmt.Fprintf(&buf, "buf.WriteUint16LE(uint16(len(%s)))\nbuf.WriteBytes(%s)", f, f)
-				} else {
-					fmt.Fprintf(&buf, "buf.WriteBytes(%s[:])", f)
-				}
-			default:
-				fmt.Fprintf(&buf, "%s.MarshalBuffer(buf)", f)
-			}
-			return buf.String()
-		},
-		"UnmarshalFunc": func(t map[string]interface{}) string {
-			ft := t["Type"].(*Type)
-			var f = t["Name"].(string)
-			var buf bytes.Buffer
-			switch ft.Name {
-			case "bool":
-				fmt.Fprintf(&buf, "%s = buf.ReadUint8() > 0", f)
-			case "int":
-				fmt.Fprintf(&buf, "%s = buf.ReadIntLE()", f)
-			case "uint":
-				fmt.Fprintf(&buf, "%s = buf.ReadUintLE()", f)
-			case "int8":
-				fmt.Fprintf(&buf, "%s = buf.ReadInt8()", f)
-			case "uint8", "byte":
-				fmt.Fprintf(&buf, "%s = buf.ReadUint8()", f)
-			case "int16":
-				fmt.Fprintf(&buf, "%s = buf.ReadInt16LE()", f)
-			case "uint16":
-				fmt.Fprintf(&buf, "%s = buf.ReadUint16LE()", f)
-			case "int32":
-				fmt.Fprintf(&buf, "%s = buf.ReadInt32LE()", f)
-			case "uint32":
-				fmt.Fprintf(&buf, "%s = buf.ReadUint32LE()", f)
-			case "int64":
-				fmt.Fprintf(&buf, "%s = buf.ReadInt64LE()", f)
-			case "uint64":
-				fmt.Fprintf(&buf, "%s = buf.ReadUint64LE()", f)
-			case "float32":
-				fmt.Fprintf(&buf, "%s = buf.ReadFloat32LE()", f)
-			case "float64":
-				fmt.Fprintf(&buf, "%s = buf.ReadFloat64LE()", f)
-			case "string":
-				fmt.Fprintf(&buf, "%s = buf.ReadString(int(buf.ReadUint16LE()))", f)
-			case "[]byte":
-				if ft.Len == "" {
-					fmt.Fprintf(&buf, "%s = buf.ReadBytes(int(buf.ReadUint16LE()))", f)
-				} else {
-					fmt.Fprintf(&buf, "copy(%s[:], buf.Take(%s))", f, ft.Len)
-				}
-			default:
-				fmt.Fprintf(&buf, "%s.UnmarshalBuffer(buf)", f)
-			}
-			return buf.String()
-		},
-	}
+	}).Parse(goTemplate))
 
-	tpl := template.Must(template.New("code").Funcs(funcMap).Parse(goTemplate))
+	var bf bytes.Buffer
+
 	if err := tpl.Execute(&bf, file); err != nil {
 		log.Fatalf("Generate code failed: %s", err)
 	}
 
-	code, err := format.Source(bf.Bytes())
+	code, err := format.Source(bytes.Replace(bf.Bytes(), []byte("\n\n"), []byte("\n"), -1))
 	if err != nil {
 		fmt.Print(bf.String())
 		log.Fatalf("Could't format source: %s", err)
 	}
-
-	code = bytes.Replace(code, []byte("\n\n"), []byte("\n"), -1)
 
 	if len(flag.Args()) == 0 {
 		filename := strings.Replace(file.Name, ".go", ".fast.go", 1)
@@ -184,4 +57,129 @@ func generateGolang(file *File) {
 	} else {
 		fmt.Print(string(code))
 	}
+}
+
+func goTypeName(t *Type) string {
+	if t.IsPoint {
+		return "*" + goTypeName(t.Type)
+	} else if t.IsArray {
+		return fmt.Sprintf("[%s]%s", t.Len, goTypeName(t.Type))
+	} else if t.Name == "[]byte" {
+		return fmt.Sprintf("[%s]byte", t.Len)
+	}
+	return t.Name
+}
+
+type goTplTypeInfo struct {
+	Type *Type
+	Name string
+	I    string
+	n    int
+}
+
+func goTypeInfo(t interface{}) *goTplTypeInfo {
+	switch t1 := t.(type) {
+	case *Field:
+		return &goTplTypeInfo{
+			t1.Type, "s." + t1.Name, "i0", 0,
+		}
+	case *goTplTypeInfo:
+		t2 := *t1
+		if t2.Type.IsArray {
+			t2.Name = fmt.Sprintf("%s[i%d]", t2.Name, t2.n)
+			t2.n++
+			t2.I = fmt.Sprintf("i%d", t2.n)
+		} else if t2.Type.IsPoint {
+			t2.Name = "(*" + t2.Name + ")"
+		}
+		t2.Type = t2.Type.Type
+		return &t2
+	}
+	panic("TypeInfo(): Unsuported Type")
+}
+
+func goMarshalFunc(t *goTplTypeInfo) string {
+	var buf bytes.Buffer
+	switch t.Type.Name {
+	case "bool":
+		fmt.Fprintf(&buf, "if %s { buf.WriteUint8(1) } else { buf.WriteUint8(0) }", t.Name)
+	case "int":
+		fmt.Fprintf(&buf, "buf.WriteIntLE(%s)", t.Name)
+	case "uint":
+		fmt.Fprintf(&buf, "buf.WriteUintLE(%s)", t.Name)
+	case "int8":
+		fmt.Fprintf(&buf, "buf.WriteInt8(%s)", t.Name)
+	case "uint8", "byte":
+		fmt.Fprintf(&buf, "buf.WriteUint8(%s)", t.Name)
+	case "int16":
+		fmt.Fprintf(&buf, "buf.WriteInt16LE(%s)", t.Name)
+	case "uint16":
+		fmt.Fprintf(&buf, "buf.WriteUint16LE(%s)", t.Name)
+	case "int32":
+		fmt.Fprintf(&buf, "buf.WriteInt32LE(%s)", t.Name)
+	case "uint32":
+		fmt.Fprintf(&buf, "buf.WriteUint32LE(%s)", t.Name)
+	case "int64":
+		fmt.Fprintf(&buf, "buf.WriteInt64LE(%s)", t.Name)
+	case "uint64":
+		fmt.Fprintf(&buf, "buf.WriteUint64LE(%s)", t.Name)
+	case "float32":
+		fmt.Fprintf(&buf, "buf.WriteFloat32LE(%s)", t.Name)
+	case "float64":
+		fmt.Fprintf(&buf, "buf.WriteFloat64LE(%s)", t.Name)
+	case "string":
+		fmt.Fprintf(&buf, "buf.WriteUint16LE(uint16(len(%s)))\nbuf.WriteString(%s)", t.Name, t.Name)
+	case "[]byte":
+		if t.Type.Len == "" {
+			fmt.Fprintf(&buf, "buf.WriteUint16LE(uint16(len(%s)))\nbuf.WriteBytes(%s)", t.Name, t.Name)
+		} else {
+			fmt.Fprintf(&buf, "buf.WriteBytes(%s[:])", t.Name)
+		}
+	default:
+		fmt.Fprintf(&buf, "%s.MarshalBuffer(buf)", t.Name)
+	}
+	return buf.String()
+}
+
+func goUnmarshalFunc(t *goTplTypeInfo) string {
+	var buf bytes.Buffer
+	switch t.Type.Name {
+	case "bool":
+		fmt.Fprintf(&buf, "%s = buf.ReadUint8() > 0", t.Name)
+	case "int":
+		fmt.Fprintf(&buf, "%s = buf.ReadIntLE()", t.Name)
+	case "uint":
+		fmt.Fprintf(&buf, "%s = buf.ReadUintLE()", t.Name)
+	case "int8":
+		fmt.Fprintf(&buf, "%s = buf.ReadInt8()", t.Name)
+	case "uint8", "byte":
+		fmt.Fprintf(&buf, "%s = buf.ReadUint8()", t.Name)
+	case "int16":
+		fmt.Fprintf(&buf, "%s = buf.ReadInt16LE()", t.Name)
+	case "uint16":
+		fmt.Fprintf(&buf, "%s = buf.ReadUint16LE()", t.Name)
+	case "int32":
+		fmt.Fprintf(&buf, "%s = buf.ReadInt32LE()", t.Name)
+	case "uint32":
+		fmt.Fprintf(&buf, "%s = buf.ReadUint32LE()", t.Name)
+	case "int64":
+		fmt.Fprintf(&buf, "%s = buf.ReadInt64LE()", t.Name)
+	case "uint64":
+		fmt.Fprintf(&buf, "%s = buf.ReadUint64LE()", t.Name)
+	case "float32":
+		fmt.Fprintf(&buf, "%s = buf.ReadFloat32LE()", t.Name)
+	case "float64":
+		fmt.Fprintf(&buf, "%s = buf.ReadFloat64LE()", t.Name)
+	case "string":
+		fmt.Fprintf(&buf, "%s = buf.ReadString(int(buf.ReadUint16LE()))", t.Name)
+	case "[]byte":
+		if t.Type.Len == "" {
+			fmt.Fprintf(&buf, "%s = buf.ReadBytes(int(buf.ReadUint16LE()))", t.Name)
+		} else {
+			fmt.Fprintf(&buf, "copy(%s[:], buf.Take(%s))", t.Name, t.Type.Len)
+		}
+	default:
+		fmt.Fprintf(&buf, "%s.UnmarshalBuffer(buf)", t.Name)
+	}
+	return buf.String()
 }

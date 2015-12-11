@@ -73,9 +73,7 @@ func analyzeStruct(structName string, structType *ast.StructType) *Struct {
 }
 
 func analyzeFixLen(t *Type) bool {
-	if t.IsPoint {
-		return false
-	} else if t.IsArray {
+	if t.IsArray {
 		if t.Len == "" {
 			return false
 		}
@@ -88,7 +86,6 @@ func analyzeType(astType ast.Expr) *Type {
 	var typeInfo Type
 	switch t := astType.(type) {
 	case *ast.StarExpr:
-		typeInfo.Size = 1
 		typeInfo.IsPoint = true
 		typeInfo.Type = analyzeType(t.X)
 	case *ast.ArrayType:

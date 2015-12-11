@@ -1,5 +1,13 @@
 package main
 
+import "strings"
+
+func line(s string) string {
+	return strings.Replace(
+		strings.Replace(s, "\n", "", -1), "\t", "", -1,
+	)
+}
+
 var goTemplate = `
 package {{.Package}}
 
@@ -64,7 +72,7 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 		{{if not .Type.Len}}
 			n += 2{{SetNeedN}}
 		{{end}}
-		for {{.i}} := 0; {{.i}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.i}}++ {
+		for {{.I}} := 0; {{.I}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.I}}++ {
 			{{template "TypeSize" (TypeInfo .)}}
 		}
 	{{else if .Type.IsPoint}}
@@ -76,8 +84,6 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 		n += {{.Name}}.BinarySize()
 	{{else if or (eq .Type.Name "string") (eq .Type.Name "[]byte")}}
 		n += {{if not .Type.Len}}2 + {{end}}len({{.Name}})
-	{{else}}
-		n += {{.Type.Size}}
 	{{end}}
 {{end}}
 
@@ -86,7 +92,7 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 		{{if not .Type.Len}}
 			buf.WriteUint16LE(uint16(len({{.Name}})))
 		{{end}}
-		for {{.i}} := 0; {{.i}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.i}}++ {
+		for {{.I}} := 0; {{.I}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.I}}++ {
 			{{template "Marshal" (TypeInfo .)}}
 		}
 	{{else if .Type.IsPoint}}
@@ -111,7 +117,7 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 			n = int(buf.ReadUint16LE())
 			{{.Name}} = make({{TypeName .Type}}, n)
 		{{end}}
-		for {{.i}} := 0; {{.i}}< {{if .Type.Len}}{{.Type.Len}}{{else}}n{{end}}; {{.i}}++ {
+		for {{.I}} := 0; {{.I}}< {{if .Type.Len}}{{.Type.Len}}{{else}}n{{end}}; {{.I}}++ {
 			{{template "Unmarshal" (TypeInfo .)}}
 		}
 	{{else if .Type.IsPoint}}
