@@ -10,12 +10,7 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 
 更多介绍：[http://zhuanlan.zhihu.com/idada/20410055](http://zhuanlan.zhihu.com/idada/20410055)
 
-特性
-====
-
-最大的特性就是没有特性。
-
-![title](http://fanaru.com/spongebob-squarepants/image/26628-spongebob-squarepants-to-do-list.jpg)
+![title](https://pic4.zhimg.com/170040a06d22f14659ea5937898fafaf_b.jpg)
 
 Go代码生成
 =========
