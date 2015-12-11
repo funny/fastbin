@@ -18,6 +18,8 @@ Go代码生成
 这个工具将为指定代码中的每个结构体生成以下方法：
 
 ```go
+import "github.com/funny/binary"
+
 type FastBin interface {
 	// 这个方法用于测量序列化后的数据长度
 	// 用于在反序列化前一次性准备好足够大的内存空间
@@ -42,7 +44,13 @@ type FastBin interface {
 }
 ```
 
-建议结合`go generate`命令使用，在需要生成代码的文件开头加上`go generate`的编译指令：
+由于`MarshalBinary`方法要求无参数，所以没有什么机会可以重用`[]byte`，非要做当然也可以，但是代码和效率都不会太好。
+
+所以fastbin另外生成了`MarshalBuffer`方法，可以从外部传入预备好的`*binary.Buffer`，这个`Buffer`必须空间够大，通常是先通过`BinarySize()`度量好消息长度后预备好`Buffer`，再传入`MarshalBuffer`中。
+
+实际项目中建议能重用`Buffer`的时候就尽量重用，可以减少不必要对象创建和内存申请。
+
+Go项目中可以结合`go generate`命令使用，在需要生成代码的文件开头加上`go generate`指令：
 
 ```go
 //go:generate $GOPATH/bin/fastbin
@@ -56,7 +64,9 @@ type Test struct {
 
 如果你的`$GOPATH/bin`在`$PATH`环境变量里，可以用更简单的指令：`//go:generate fastbin`
 
-在需要生成代码的包的根路径执行`go generate ./...`即可生成所有代码，也可以单独指定需要生成的文件，例如：`go generate demo.go`。
+在需要生成代码的包的根目录或者项目根目录执行`go generate ./...`即可执行当前目录以及子目录下所有加了`//go:generate`标记的命令。
+
+也可以在命令行单独指定需要生成的文件，例如：`go generate demo.go`。
 
 格式
 ====
