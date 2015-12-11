@@ -38,11 +38,14 @@ func generateGolang(file *File) {
 		log.Fatalf("Generate code failed: %s", err)
 	}
 
-	code, err := format.Source(bytes.Replace(bf.Bytes(), []byte("\n\n"), []byte("\n"), -1))
+	code, err := format.Source(bf.Bytes())
 	if err != nil {
 		fmt.Print(bf.String())
 		log.Fatalf("Could't format source: %s", err)
 	}
+	code = bytes.Replace(code, []byte("\n\n"), []byte("\n"), -1)
+	code = bytes.Replace(code, []byte("n = 0\n"), []byte("\n"), -1)
+	code = bytes.Replace(code, []byte("+ 0\n"), []byte("\n"), -1)
 
 	if len(flag.Args()) == 0 {
 		filename := strings.Replace(file.Name, ".go", ".fast.go", 1)
@@ -128,10 +131,10 @@ func goMarshalFunc(t *goTplTypeInfo) string {
 	case "float64":
 		fmt.Fprintf(&buf, "buf.WriteFloat64LE(%s)", t.Name)
 	case "string":
-		fmt.Fprintf(&buf, "buf.WriteUint16LE(uint16(len(%s)))\nbuf.WriteString(%s)", t.Name, t.Name)
+		fmt.Fprintf(&buf, "buf.WriteUint16LE(uint16(len(%s))); buf.WriteString(%s)", t.Name, t.Name)
 	case "[]byte":
 		if t.Type.Len == "" {
-			fmt.Fprintf(&buf, "buf.WriteUint16LE(uint16(len(%s)))\nbuf.WriteBytes(%s)", t.Name, t.Name)
+			fmt.Fprintf(&buf, "buf.WriteUint16LE(uint16(len(%s))); buf.WriteBytes(%s)", t.Name, t.Name)
 		} else {
 			fmt.Fprintf(&buf, "buf.WriteBytes(%s[:])", t.Name)
 		}
