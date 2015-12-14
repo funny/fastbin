@@ -34,11 +34,11 @@ type FastBin interface {
 	// 这个方法实现了 encoding.BinaryUnmarshaler 接口
 	UnmarshalBinary(data []byte) error
 
-	// 将结构体的内容序列化到binary.Writer中
-	MarshalWriter(buf binary.Writer)
+	// 将结构体的内容序列化到BinaryWriter中
+	MarshalWriter(buf binary.BinaryWriter)
 
-	// 从binary.Reader中反序列化出结构体数据
-	UnmarshalReader(r binary.Reader)
+	// 从BinaryReader中反序列化出结构体数据
+	UnmarshalReader(r binary.BinaryReader)
 }
 ```
 
