@@ -34,19 +34,17 @@ type FastBin interface {
 	// 这个方法实现了 encoding.BinaryUnmarshaler 接口
 	UnmarshalBinary(data []byte) error
 
-	// 将结构体的内容序列化到Buffer中
-	// 内部不会动态扩容，buf的内存空间必须足够长度
-	MarshalBuffer(buf *binary.Buffer)
+	// 将结构体的内容序列化到binary.Writer中
+	MarshalWriter(buf binary.Writer)
 
-	// 从Buffer中反序列化出结构体数据
-	// buff的内存空间必须足够长度
-	UnmarshalBuffer(buf *binary.Buffer)
+	// 从binary.Reader中反序列化出结构体数据
+	UnmarshalReader(r binary.Reader)
 }
 ```
 
 由于`MarshalBinary`方法要求无参数，所以没有什么机会可以重用`[]byte`，非要做当然也可以，但是代码和效率都不会太好。
 
-所以fastbin另外生成了`MarshalBuffer`方法，可以从外部传入预备好的`*binary.Buffer`，这个`Buffer`必须空间够大，通常是先通过`BinarySize()`度量好消息长度后预备好`Buffer`，再传入`MarshalBuffer`中。
+所以fastbin另外生成了`MarshalWriter`方法，可以从外部传入预备好的`*binary.Buffer`，这个`Buffer`必须空间够大，通常是先通过`BinarySize()`度量好消息长度后预备好`Buffer`，再传入`MarshalWriter`中。
 
 实际项目中建议能重用`Buffer`的时候就尽量重用，可以减少不必要对象创建和内存申请。
 

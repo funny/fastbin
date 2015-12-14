@@ -17,13 +17,13 @@ import "github.com/funny/binary"
 	{{UnsetNeedN}}
 func (s *{{.Name}}) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalBuffer(&buf)
+	s.MarshalWriter(&buf)
 	data = buf.Data[:buf.WritePos]
 	return
 }
 
 func (s *{{.Name}}) UnmarshalBinary(data []byte) error {
-	s.UnmarshalBuffer(&binary.Buffer{Data:data})
+	s.UnmarshalReader(&binary.Buffer{Data:data})
 	return nil
 }
 
@@ -42,13 +42,13 @@ func (s *{{.Name}}) BinarySize() (n int) {
 	return
 }
 
-func (s *{{.Name}}) MarshalBuffer(buf *binary.Buffer) {
+func (s *{{.Name}}) MarshalWriter(w binary.BinaryWriter) {
 	{{range .Fields}}
 		{{template "Marshal" (TypeInfo .)}}
 	{{end}}
 }
 
-func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
+func (s *{{.Name}}) UnmarshalReader(r binary.BinaryReader) {
 	{{if IsNeedN}}
 		var n int
 	{{end}}
@@ -90,18 +90,18 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 {{define "Marshal"}}
 	{{if .Type.IsArray}}
 		{{if not .Type.Len}}
-			buf.WriteUint16LE(uint16(len({{.Name}})))
+			w.WriteUint16LE(uint16(len({{.Name}})))
 		{{end}}
 		for {{.I}} := 0; {{.I}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.I}}++ {
 			{{template "Marshal" (TypeInfo .)}}
 		}
 	{{else if .Type.IsPoint}}
 		if {{.Name}} == nil { 
-			buf.WriteUint8(0);
+			w.WriteUint8(0);
 		} else {
-			buf.WriteUint8(1);
+			w.WriteUint8(1);
 			{{if .Type.Type.IsUnknow}}
-				{{.Name}}.MarshalBuffer(buf)
+				{{.Name}}.MarshalWriter(w)
 			{{else}}
 				{{template "Marshal" (TypeInfo .)}}
 			{{end}}
@@ -114,17 +114,17 @@ func (s *{{.Name}}) UnmarshalBuffer(buf *binary.Buffer) {
 {{define "Unmarshal"}}
 	{{if .Type.IsArray}}
 		{{if not .Type.Len}}
-			n = int(buf.ReadUint16LE())
+			n = int(r.ReadUint16LE())
 			{{.Name}} = make({{TypeName .Type}}, n)
 		{{end}}
 		for {{.I}} := 0; {{.I}}< {{if .Type.Len}}{{.Type.Len}}{{else}}n{{end}}; {{.I}}++ {
 			{{template "Unmarshal" (TypeInfo .)}}
 		}
 	{{else if .Type.IsPoint}}
-		if buf.ReadUint8() == 1 {
+		if r.ReadUint8() == 1 {
 			{{if .Type.Type.IsUnknow}}
 				{{.Name}} = new({{TypeName .Type.Type}})
-				{{.Name}}.UnmarshalBuffer(buf)
+				{{.Name}}.UnmarshalReader(r)
 			{{else}}
 				{{template "Unmarshal" (TypeInfo .)}}
 			{{end}}

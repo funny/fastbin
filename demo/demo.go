@@ -3,8 +3,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/funny/binary"
 	"time"
+
+	"github.com/funny/binary"
 )
 
 type AddressBook struct {
@@ -37,9 +38,9 @@ func main() {
 
 	var buf = &binary.Buffer{Data: make([]byte, ab.BinarySize())}
 
-	ab.MarshalBuffer(buf)
+	ab.MarshalWriter(buf)
 	ab = AddressBook{}
-	ab.UnmarshalBuffer(buf)
+	ab.UnmarshalReader(buf)
 
 	fmt.Printf("Check: %v\n", ab)
 	fmt.Println("Binary size:", len(buf.Data))
@@ -47,7 +48,7 @@ func main() {
 	t1 := time.Now()
 	for i := 0; i < 1000000; i++ {
 		buf.WritePos = 0
-		ab.MarshalBuffer(buf)
+		ab.MarshalWriter(buf)
 	}
 	fmt.Println("Marshal 1M times:", time.Since(t1).String())
 
@@ -55,7 +56,7 @@ func main() {
 	t2 := time.Now()
 	for i := 0; i < 1000000; i++ {
 		buf.ReadPos = 0
-		ab.UnmarshalBuffer(buf)
+		ab.UnmarshalReader(buf)
 	}
 	fmt.Println("Umarshal 1M times:", time.Since(t2).String())
 }
