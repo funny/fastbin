@@ -69,16 +69,24 @@ func (s *{{.Name}}) UnmarshalReader(r binary.BinaryReader) {
 `) + `
 {{define "TypeSize"}}
 	{{if .Type.IsArray}}
-		{{if not .Type.Len}}
-			n += 2{{SetNeedN}}
+		{{if .Type.Type.Size}}
+			n += len({{.Name}}) * {{.Type.Type.Size}}
+		{{else}}
+			{{if not .Type.Len}}
+				n += 2{{SetNeedN}}
+			{{end}}
+			for {{.I}} := 0; {{.I}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.I}}++ {
+				{{template "TypeSize" (TypeInfo .)}}
+			}
 		{{end}}
-		for {{.I}} := 0; {{.I}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.I}}++ {
-			{{template "TypeSize" (TypeInfo .)}}
-		}
 	{{else if .Type.IsPoint}}
 		n += 1
 		if {{.Name}} != nil {
-			{{template "TypeSize" (TypeInfo .)}}
+			{{if .Type.Type.Size}}
+				n += {{.Type.Type.Size}}
+			{{else}}
+				{{template "TypeSize" (TypeInfo .)}}
+			{{end}}
 		}
 	{{else if .Type.IsUnknow}}
 		n += {{.Name}}.BinarySize()

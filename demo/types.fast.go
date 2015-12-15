@@ -1,224 +1,5 @@
 package main
 import "github.com/funny/binary"
-func (s *Arrays) MarshalBinary() (data []byte, err error) {
-	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalWriter(&buf)
-	data = buf.Data[:buf.WritePos]
-	return
-}
-func (s *Arrays) UnmarshalBinary(data []byte) error {
-	s.UnmarshalReader(&binary.Buffer{Data: data})
-	return nil
-}
-func (s *Arrays) BinarySize() (n int) {
-	
-	n += 2
-	for i0 := 0; i0 < len(s.Field0); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field1); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field2); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field3); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field4); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field5); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field6); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field7); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field8); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field9); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field10); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field11); i0++ {
-		n += 2 + len(s.Field11[i0])
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field12); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field13); i0++ {
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field14); i0++ {
-		n += s.Field14[i0].BinarySize()
-	}
-	n += 2
-	for i0 := 0; i0 < len(s.Field15); i0++ {
-		n += s.Field15[i0].BinarySize()
-	}
-	return
-}
-func (s *Arrays) MarshalWriter(w binary.BinaryWriter) {
-	w.WriteUint16LE(uint16(len(s.Field0)))
-	for i0 := 0; i0 < len(s.Field0); i0++ {
-		if s.Field0[i0] {
-			w.WriteUint8(1)
-		} else {
-			w.WriteUint8(0)
-		}
-	}
-	w.WriteUint16LE(uint16(len(s.Field1)))
-	for i0 := 0; i0 < len(s.Field1); i0++ {
-		w.WriteInt8(s.Field1[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field2)))
-	for i0 := 0; i0 < len(s.Field2); i0++ {
-		w.WriteUint8(s.Field2[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field3)))
-	for i0 := 0; i0 < len(s.Field3); i0++ {
-		w.WriteInt16LE(s.Field3[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field4)))
-	for i0 := 0; i0 < len(s.Field4); i0++ {
-		w.WriteUint16LE(s.Field4[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field5)))
-	for i0 := 0; i0 < len(s.Field5); i0++ {
-		w.WriteInt32LE(s.Field5[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field6)))
-	for i0 := 0; i0 < len(s.Field6); i0++ {
-		w.WriteUint32LE(s.Field6[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field7)))
-	for i0 := 0; i0 < len(s.Field7); i0++ {
-		w.WriteInt64LE(s.Field7[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field8)))
-	for i0 := 0; i0 < len(s.Field8); i0++ {
-		w.WriteUint64LE(s.Field8[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field9)))
-	for i0 := 0; i0 < len(s.Field9); i0++ {
-		w.WriteIntLE(s.Field9[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field10)))
-	for i0 := 0; i0 < len(s.Field10); i0++ {
-		w.WriteUintLE(s.Field10[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field11)))
-	for i0 := 0; i0 < len(s.Field11); i0++ {
-		w.WriteUint16LE(uint16(len(s.Field11[i0])))
-		w.WriteString(s.Field11[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field12)))
-	for i0 := 0; i0 < len(s.Field12); i0++ {
-		w.WriteFloat32LE(s.Field12[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field13)))
-	for i0 := 0; i0 < len(s.Field13); i0++ {
-		w.WriteFloat64LE(s.Field13[i0])
-	}
-	w.WriteUint16LE(uint16(len(s.Field14)))
-	for i0 := 0; i0 < len(s.Field14); i0++ {
-		s.Field14[i0].MarshalWriter(w)
-	}
-	w.WriteUint16LE(uint16(len(s.Field15)))
-	for i0 := 0; i0 < len(s.Field15); i0++ {
-		s.Field15[i0].MarshalWriter(w)
-	}
-}
-func (s *Arrays) UnmarshalReader(r binary.BinaryReader) {
-	var n int
-	n = int(r.ReadUint16LE())
-	s.Field0 = make([]bool, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field0[i0] = r.ReadUint8() > 0
-	}
-	n = int(r.ReadUint16LE())
-	s.Field1 = make([]int8, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field1[i0] = r.ReadInt8()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field2 = make([]uint8, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field2[i0] = r.ReadUint8()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field3 = make([]int16, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field3[i0] = r.ReadInt16LE()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field4 = make([]uint16, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field4[i0] = r.ReadUint16LE()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field5 = make([]int32, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field5[i0] = r.ReadInt32LE()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field6 = make([]uint32, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field6[i0] = r.ReadUint32LE()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field7 = make([]int64, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field7[i0] = r.ReadInt64LE()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field8 = make([]uint64, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field8[i0] = r.ReadUint64LE()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field9 = make([]int, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field9[i0] = r.ReadIntLE()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field10 = make([]uint, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field10[i0] = r.ReadUintLE()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field11 = make([]string, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field11[i0] = r.ReadString(int(r.ReadUint16LE()))
-	}
-	n = int(r.ReadUint16LE())
-	s.Field12 = make([]float32, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field12[i0] = r.ReadFloat32LE()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field13 = make([]float64, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field13[i0] = r.ReadFloat64LE()
-	}
-	n = int(r.ReadUint16LE())
-	s.Field14 = make([]MyType1, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field14[i0].UnmarshalReader(r)
-	}
-	n = int(r.ReadUint16LE())
-	s.Field15 = make([]MyType1, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field15[i0].UnmarshalReader(r)
-	}
-}
 func (s *SizedArray) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
 	s.MarshalWriter(&buf)
@@ -370,13 +151,12 @@ func (s *ComplexCase) BinarySize() (n int) {
 	for i0 := 0; i0 < len(s.ArrayOfPoint); i0++ {
 		n += 1
 		if s.ArrayOfPoint[i0] != nil {
+			n += 8
 		}
 	}
 	n += 1
 	if s.PointOfArray != nil {
-		n += 2
-		for i0 := 0; i0 < len((*s.PointOfArray)); i0++ {
-		}
+		n += len((*s.PointOfArray)) * 8
 	}
 	n += 1
 	if s.PointOfArrayOfPoint != nil {
@@ -397,13 +177,10 @@ func (s *ComplexCase) BinarySize() (n int) {
 	}
 	n += 2
 	for i0 := 0; i0 < len(s.ArrayOfSizedArray); i0++ {
-		for i1 := 0; i1 < 10; i1++ {
-		}
+		n += len(s.ArrayOfSizedArray[i0]) * 8
 	}
 	for i0 := 0; i0 < 10; i0++ {
-		n += 2
-		for i1 := 0; i1 < len(s.SizedArrayOfArray[i0]); i1++ {
-		}
+		n += len(s.SizedArrayOfArray[i0]) * 8
 	}
 	n += 1
 	if s.WTF != nil {
@@ -866,36 +643,47 @@ func (s *Points) BinarySize() (n int) {
 	
 	n += 1
 	if s.Field0 != nil {
+		n += 1
 	}
 	n += 1
 	if s.Field1 != nil {
+		n += 1
 	}
 	n += 1
 	if s.Field2 != nil {
+		n += 1
 	}
 	n += 1
 	if s.Field3 != nil {
+		n += 2
 	}
 	n += 1
 	if s.Field4 != nil {
+		n += 2
 	}
 	n += 1
 	if s.Field5 != nil {
+		n += 4
 	}
 	n += 1
 	if s.Field6 != nil {
+		n += 4
 	}
 	n += 1
 	if s.Field7 != nil {
+		n += 8
 	}
 	n += 1
 	if s.Field8 != nil {
+		n += 8
 	}
 	n += 1
 	if s.Field9 != nil {
+		n += 8
 	}
 	n += 1
 	if s.Field10 != nil {
+		n += 8
 	}
 	n += 1
 	if s.Field11 != nil {
@@ -903,9 +691,11 @@ func (s *Points) BinarySize() (n int) {
 	}
 	n += 1
 	if s.Field12 != nil {
+		n += 4
 	}
 	n += 1
 	if s.Field13 != nil {
+		n += 8
 	}
 	n += 1
 	if s.Field14 != nil {
@@ -1070,5 +860,198 @@ func (s *Points) UnmarshalReader(r binary.BinaryReader) {
 	if r.ReadUint8() == 1 {
 		s.Field15 = new(MyType1)
 		s.Field15.UnmarshalReader(r)
+	}
+}
+func (s *Arrays) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	data = buf.Data[:buf.WritePos]
+	return
+}
+func (s *Arrays) UnmarshalBinary(data []byte) error {
+	s.UnmarshalReader(&binary.Buffer{Data: data})
+	return nil
+}
+func (s *Arrays) BinarySize() (n int) {
+	
+	n += len(s.Field0) * 1
+	n += len(s.Field1) * 1
+	n += len(s.Field2) * 1
+	n += len(s.Field3) * 2
+	n += len(s.Field4) * 2
+	n += len(s.Field5) * 4
+	n += len(s.Field6) * 4
+	n += len(s.Field7) * 8
+	n += len(s.Field8) * 8
+	n += len(s.Field9) * 8
+	n += len(s.Field10) * 8
+	n += 2
+	for i0 := 0; i0 < len(s.Field11); i0++ {
+		n += 2 + len(s.Field11[i0])
+	}
+	n += len(s.Field12) * 4
+	n += len(s.Field13) * 8
+	n += 2
+	for i0 := 0; i0 < len(s.Field14); i0++ {
+		n += s.Field14[i0].BinarySize()
+	}
+	n += 2
+	for i0 := 0; i0 < len(s.Field15); i0++ {
+		n += s.Field15[i0].BinarySize()
+	}
+	return
+}
+func (s *Arrays) MarshalWriter(w binary.BinaryWriter) {
+	w.WriteUint16LE(uint16(len(s.Field0)))
+	for i0 := 0; i0 < len(s.Field0); i0++ {
+		if s.Field0[i0] {
+			w.WriteUint8(1)
+		} else {
+			w.WriteUint8(0)
+		}
+	}
+	w.WriteUint16LE(uint16(len(s.Field1)))
+	for i0 := 0; i0 < len(s.Field1); i0++ {
+		w.WriteInt8(s.Field1[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field2)))
+	for i0 := 0; i0 < len(s.Field2); i0++ {
+		w.WriteUint8(s.Field2[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field3)))
+	for i0 := 0; i0 < len(s.Field3); i0++ {
+		w.WriteInt16LE(s.Field3[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field4)))
+	for i0 := 0; i0 < len(s.Field4); i0++ {
+		w.WriteUint16LE(s.Field4[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field5)))
+	for i0 := 0; i0 < len(s.Field5); i0++ {
+		w.WriteInt32LE(s.Field5[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field6)))
+	for i0 := 0; i0 < len(s.Field6); i0++ {
+		w.WriteUint32LE(s.Field6[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field7)))
+	for i0 := 0; i0 < len(s.Field7); i0++ {
+		w.WriteInt64LE(s.Field7[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field8)))
+	for i0 := 0; i0 < len(s.Field8); i0++ {
+		w.WriteUint64LE(s.Field8[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field9)))
+	for i0 := 0; i0 < len(s.Field9); i0++ {
+		w.WriteIntLE(s.Field9[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field10)))
+	for i0 := 0; i0 < len(s.Field10); i0++ {
+		w.WriteUintLE(s.Field10[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field11)))
+	for i0 := 0; i0 < len(s.Field11); i0++ {
+		w.WriteUint16LE(uint16(len(s.Field11[i0])))
+		w.WriteString(s.Field11[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field12)))
+	for i0 := 0; i0 < len(s.Field12); i0++ {
+		w.WriteFloat32LE(s.Field12[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field13)))
+	for i0 := 0; i0 < len(s.Field13); i0++ {
+		w.WriteFloat64LE(s.Field13[i0])
+	}
+	w.WriteUint16LE(uint16(len(s.Field14)))
+	for i0 := 0; i0 < len(s.Field14); i0++ {
+		s.Field14[i0].MarshalWriter(w)
+	}
+	w.WriteUint16LE(uint16(len(s.Field15)))
+	for i0 := 0; i0 < len(s.Field15); i0++ {
+		s.Field15[i0].MarshalWriter(w)
+	}
+}
+func (s *Arrays) UnmarshalReader(r binary.BinaryReader) {
+	var n int
+	n = int(r.ReadUint16LE())
+	s.Field0 = make([]bool, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field0[i0] = r.ReadUint8() > 0
+	}
+	n = int(r.ReadUint16LE())
+	s.Field1 = make([]int8, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field1[i0] = r.ReadInt8()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field2 = make([]uint8, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field2[i0] = r.ReadUint8()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field3 = make([]int16, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field3[i0] = r.ReadInt16LE()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field4 = make([]uint16, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field4[i0] = r.ReadUint16LE()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field5 = make([]int32, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field5[i0] = r.ReadInt32LE()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field6 = make([]uint32, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field6[i0] = r.ReadUint32LE()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field7 = make([]int64, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field7[i0] = r.ReadInt64LE()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field8 = make([]uint64, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field8[i0] = r.ReadUint64LE()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field9 = make([]int, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field9[i0] = r.ReadIntLE()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field10 = make([]uint, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field10[i0] = r.ReadUintLE()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field11 = make([]string, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field11[i0] = r.ReadString(int(r.ReadUint16LE()))
+	}
+	n = int(r.ReadUint16LE())
+	s.Field12 = make([]float32, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field12[i0] = r.ReadFloat32LE()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field13 = make([]float64, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field13[i0] = r.ReadFloat64LE()
+	}
+	n = int(r.ReadUint16LE())
+	s.Field14 = make([]MyType1, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field14[i0].UnmarshalReader(r)
+	}
+	n = int(r.ReadUint16LE())
+	s.Field15 = make([]MyType1, n)
+	for i0 := 0; i0 < n; i0++ {
+		s.Field15[i0].UnmarshalReader(r)
 	}
 }
