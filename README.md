@@ -91,8 +91,8 @@ type MyMessage struct {
 
 `go generate`同样支持`./...`和`...`的特殊用法，可以不用在所有代码上都加指令。
 
-格式
-====
+协议格式
+=======
 
 基本格式：
 
@@ -207,6 +207,53 @@ Unmarshal 1M times: 638.01296ms
 反序列化过程因为有对象创建，所以开销较大，以后可以考虑加入对象池进行优化。
 
 注：云风给sproto的测试是在lua里的，所以两者执行时间不具有可比性。
+
+消息识别和分发
+============
+
+fastbin同时还支持一种简单的消息识别和分发代码的生成。
+
+当一个消息类型使用`fastbin:message = 123`这样的标签格式指定了消息类型ID后，fastbin将为这个消息生成一个`MessageID()`方法，返回值为`byte`类型。
+
+也就是说可以有256种不同的消息，但是256种显然是不足以满足大项目的使用的，所以fastbin另外提供了一个标签：`fastbin:service`。
+
+当一个结构体被标注了`fastbin:service`标签时，fastbin将分析这个类型的所有方法，当一个方法符合以下条件时，将被视为消息处理接口：
+
+1. 第一个参数是`*link.Session`类型
+2. 第二个参数是标注了`fastbin:message`标签的消息类型
+
+举例：
+
+```go
+
+//fastbin:service
+type MyService struct {
+}
+
+//fastbin:message
+type Message1 struct {
+	Field1 int
+	Field2 int
+}
+
+func (s *MyService) HandleMessage1(session *link.Session, msg *Message1) {
+	// ...
+}
+```
+
+fastbin将为每个标注了`fastbin:service`标签的类型生成`DecodeRequest()`方法。
+
+`DecodeRequest()`方法中会根据消息的第一个字节来识别消息类型，然后实例化对应的消息对象，并调用fastbin生成的反序列化方法。
+
+接着`DecodeRequest()`会以`func(*link.Session)`的闭包函数返回消息处理接口的调用入口。
+
+外部就可以调用`DecodeRequest()`来解析具体消息类型，并获得对应消息类型的处理接口，然后调用。
+
+每个`fastbin:service`可以有自己的ID，fastbin一样会生成一个返回byte类型的`ServiceID()`方法。
+
+这样就可以有256个服务模块，每个服务模块可以有256种消息，足以满足大部分项目的需要。
+
+NOTE: 这部分特性目前还在开发中，可能会有较多变动，具体细节请参考demo中生成的代码。
 
 FAQ
 ===
