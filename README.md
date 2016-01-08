@@ -2,11 +2,9 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 介绍
 ====
 
-这个小工具可以分析指定代码中的Go结构体，并生成对应二进制序列化和反序列化代码，它可以生成的Go代码符合[`encoding.BinaryMarshaler`](https://golang.org/pkg/encoding/#BinaryMarshaler)和[`encoding.BinaryUnmarshaler`](https://golang.org/pkg/encoding/#BinaryUnmarshaler)接口要求。
+这个小工具可以分析指定代码中的Go结构体，并生成对应二进制序列化和反序列化代码。
 
-另外支持更高效的序列化和反序列化方式，可配合[`github.com/funny/link`](https://github.com/funny/link)内置的分包协议使用。
-
-并可以加入其它编程语言代码生成的支持，可用于游戏项目的服务端和客户端通讯协议解析代码生成。
+可以配合[`github.com/funny/link`](https://github.com/funny/link)内置的分包协议使用，也可以单独使用。
 
 更多介绍：[http://zhuanlan.zhihu.com/idada/20410055](http://zhuanlan.zhihu.com/idada/20410055)
 
