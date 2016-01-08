@@ -48,6 +48,16 @@ func (s *{{.Name}}) MessageID() byte {
 }
 {{end}}
 
+func (s *{{.Name}}) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+
+func (s *{{.Name}}) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
+}
+
 func (s *{{.Name}}) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
 	s.MarshalWriter(&buf)

@@ -24,6 +24,14 @@ func (s *MyService) DecodeRequest(p []byte) func(*link.Session) {
 	}
 	panic("*MyService: Unknow Message Type")
 }
+func (s *AddressBook) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *AddressBook) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
+}
 func (s *AddressBook) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
 	s.MarshalWriter(&buf)
@@ -55,6 +63,14 @@ func (s *AddressBook) UnmarshalReader(r binary.BinaryReader) {
 	for i0 := 0; i0 < n; i0++ {
 		s.Person[i0].UnmarshalReader(r)
 	}
+}
+func (s *Arrays) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *Arrays) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
 }
 func (s *Arrays) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
@@ -248,6 +264,14 @@ func (s *Arrays) UnmarshalReader(r binary.BinaryReader) {
 	for i0 := 0; i0 < n; i0++ {
 		s.Field15[i0].UnmarshalReader(r)
 	}
+}
+func (s *ComplexCase) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *ComplexCase) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
 }
 func (s *ComplexCase) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
@@ -495,6 +519,14 @@ func (s *ComplexCase) UnmarshalReader(r binary.BinaryReader) {
 func (s *MyMessage1) MessageID() byte {
 	return 1
 }
+func (s *MyMessage1) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *MyMessage1) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
+}
 func (s *MyMessage1) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
 	s.MarshalWriter(&buf)
@@ -531,6 +563,14 @@ func (s *MyMessage1) UnmarshalReader(r binary.BinaryReader) {
 func (s *MyMessage2) MessageID() byte {
 	return 2
 }
+func (s *MyMessage2) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *MyMessage2) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
+}
 func (s *MyMessage2) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
 	s.MarshalWriter(&buf)
@@ -554,6 +594,14 @@ func (s *MyMessage2) MarshalWriter(w binary.BinaryWriter) {
 func (s *MyMessage2) UnmarshalReader(r binary.BinaryReader) {
 	s.Field1 = int(r.ReadUint64LE())
 	s.Field2 = string(r.ReadString(int(r.ReadUint16LE())))
+}
+func (s *MyType1) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *MyType1) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
 }
 func (s *MyType1) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
@@ -738,6 +786,14 @@ func (s *MyType1) UnmarshalReader(r binary.BinaryReader) {
 		}
 	}
 }
+func (s *MyType2) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *MyType2) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
+}
 func (s *MyType2) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
 	s.MarshalWriter(&buf)
@@ -757,6 +813,14 @@ func (s *MyType2) MarshalWriter(w binary.BinaryWriter) {
 }
 func (s *MyType2) UnmarshalReader(r binary.BinaryReader) {
 	s.Field1 = int(r.ReadUint64LE())
+}
+func (s *Person) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *Person) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
 }
 func (s *Person) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
@@ -800,6 +864,14 @@ func (s *Person) UnmarshalReader(r binary.BinaryReader) {
 		s.Phone[i0].UnmarshalReader(r)
 	}
 }
+func (s *PhoneNum) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *PhoneNum) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
+}
 func (s *PhoneNum) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
 	s.MarshalWriter(&buf)
@@ -823,6 +895,14 @@ func (s *PhoneNum) MarshalWriter(w binary.BinaryWriter) {
 func (s *PhoneNum) UnmarshalReader(r binary.BinaryReader) {
 	s.Number = string(r.ReadString(int(r.ReadUint16LE())))
 	s.Type = int32(r.ReadUint32LE())
+}
+func (s *Points) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *Points) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
 }
 func (s *Points) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
@@ -1057,6 +1137,14 @@ func (s *Points) UnmarshalReader(r binary.BinaryReader) {
 		s.Field15.UnmarshalReader(r)
 	}
 }
+func (s *SimpleTypes) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *SimpleTypes) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
+}
 func (s *SimpleTypes) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
 	s.MarshalWriter(&buf)
@@ -1111,6 +1199,14 @@ func (s *SimpleTypes) UnmarshalReader(r binary.BinaryReader) {
 	s.Field12 = float32(r.ReadFloat32LE())
 	s.Field13 = float64(r.ReadFloat64LE())
 	s.Field14.UnmarshalReader(r)
+}
+func (s *SizedArray) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *SizedArray) UnmarshalBinary(data []byte) error {
+	return s.UnmarshalPacket(data)
 }
 func (s *SizedArray) MarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}

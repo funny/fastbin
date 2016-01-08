@@ -19,6 +19,14 @@ fastbin将为代码中加了`fb:message`标签的结构体生成以下方法：
 import "github.com/funny/binary"
 
 type FastBin interface {
+	// 这个方法用于实现 encoding.BinaryMarshaler 接口
+	// 可以对gob序列化起到加速作用
+	MarshalBinary() (data []byte, err error)
+
+	// 这个方法实现了 encoding.BinaryUnmarshaler 接口
+	// 可以对gob反序列化起到加速作用
+	UnmarshalBinary(data []byte) error
+	
 	// 这个方法用于实现link分包协议要求的 PacketMarshaler 接口
 	BinarySize() (n int)
 	
@@ -28,10 +36,10 @@ type FastBin interface {
 	// 这个方法用于实现link分包协议要求的 PacketUnmarshaler 接口
 	UnmarshalPacket(p []byte)
 
-	// 将结构体的内容序列化到BinaryWriter中
+	// 将结构体的内容序列化到 BinaryWriter 中
 	MarshalWriter(w binary.BinaryWriter)
 
-	// 从BinaryReader中反序列化出结构体数据
+	// 从 BinaryReader 中反序列化出结构体数据
 	UnmarshalReader(r binary.BinaryReader)
 }
 ```
