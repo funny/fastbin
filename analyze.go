@@ -11,8 +11,8 @@ import (
 	"regexp"
 )
 
-var svcRegexp = regexp.MustCompile(`^\s*fastbin:\s*service(?:\s*=\s*(\d+))?\s*$`)
-var msgRegexp = regexp.MustCompile(`^\s*fastbin:\s*message(?:\s*=\s*(\d+))?\s*$`)
+var svcRegexp = regexp.MustCompile(`^\s*fb:\s*service(?:\s*=\s*(\d+))?\s*$`)
+var msgRegexp = regexp.MustCompile(`^\s*fb:\s*message(?:\s*=\s*(\d+))?\s*$`)
 
 type packageInfo struct {
 	Name       string
@@ -119,17 +119,17 @@ func analyzeConstTypes(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 	}
 }
 
-// find 'fastbin:message'
+// find 'fb:message'
 func analyzeMessages(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 	for _, t := range pkgDoc.Types {
 		if matches := msgRegexp.FindStringSubmatch(t.Doc); len(matches) > 0 {
 			typeSpce, ok := t.Decl.Specs[0].(*ast.TypeSpec)
 			if !ok {
-				log.Fatalf("Found 'fastbin:message' tag on non-struct type '%s'", t.Name)
+				log.Fatalf("Found 'fb:message' tag on non-struct type '%s'", t.Name)
 			}
 			structType, ok := typeSpce.Type.(*ast.StructType)
 			if !ok {
-				log.Fatalf("Found 'fastbin:message' tag on non-struct type '%s'", t.Name)
+				log.Fatalf("Found 'fb:message' tag on non-struct type '%s'", t.Name)
 			}
 			structInfo := analyzeStruct(pkgInfo, matches[1], t.Name, structType)
 			pkgInfo.Messages[t.Name] = structInfo
@@ -143,7 +143,7 @@ func analyzeMessages(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 	}
 }
 
-// find 'fastbin:service'
+// find 'fb:service'
 func analyzeServices(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 	for _, t := range pkgDoc.Types {
 		if matches := svcRegexp.FindStringSubmatch(t.Doc); len(matches) > 0 {
