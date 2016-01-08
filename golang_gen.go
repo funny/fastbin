@@ -2,23 +2,21 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"go/format"
 	"log"
-	"os"
-	"strings"
 	"text/template"
 )
 
-func generateGolang(file *File) {
+func generateGolang(pkg *packageInfo, byteOrder string) (head, code []byte) {
 	needN := false
-
 	tpl := template.Must(template.New("code").Funcs(template.FuncMap{
 		"TypeName":      goTypeName,
-		"TypeInfo":      goTypeInfo,
 		"MarshalFunc":   goMarshalFunc,
 		"UnmarshalFunc": goUnmarshalFunc,
+		"TypeInfo": func(t interface{}) *goTplTypeInfo {
+			return goTypeInfo(t, byteOrder)
+		},
 		"SetNeedN": func() string {
 			needN = true
 			return ""
@@ -33,12 +31,18 @@ func generateGolang(file *File) {
 	}).Parse(goTemplate))
 
 	var bf bytes.Buffer
-
-	if err := tpl.Execute(&bf, file); err != nil {
+	err := tpl.Execute(&bf, pkg)
+	if err != nil {
 		log.Fatalf("Generate code failed: %s", err)
 	}
 
-	code, err := format.Source(bf.Bytes())
+	headStr := "package " + pkg.Name + "\n\n import \"github.com/funny/binary\"\n\n"
+	if len(pkg.Services) > 0 {
+		headStr += `import "github.com/funny/link"`
+	}
+	head = []byte(headStr)
+
+	code, err = format.Source(bf.Bytes())
 	if err != nil {
 		fmt.Print(bf.String())
 		log.Fatalf("Could't format source: %s", err)
@@ -46,23 +50,10 @@ func generateGolang(file *File) {
 	code = bytes.Replace(code, []byte("\n\n"), []byte("\n"), -1)
 	code = bytes.Replace(code, []byte("n = 0\n"), []byte("\n"), -1)
 	code = bytes.Replace(code, []byte("+ 0\n"), []byte("\n"), -1)
-
-	if len(flag.Args()) == 0 {
-		filename := strings.Replace(file.Name, ".go", ".fast.go", 1)
-		file, err := os.Create(filename)
-		if err != nil {
-			log.Fatalf("Could't create file '%s': %s", filename, err)
-		}
-		if _, err := file.Write(code); err != nil {
-			log.Fatalf("Write file '%s' failed: %s", filename, err)
-		}
-		file.Close()
-	} else {
-		fmt.Print(string(code))
-	}
+	return
 }
 
-func goTypeName(t *Type) string {
+func goTypeName(t *typeInfo) string {
 	if t.IsPoint {
 		return "*" + goTypeName(t.Type)
 	} else if t.IsArray {
@@ -74,17 +65,18 @@ func goTypeName(t *Type) string {
 }
 
 type goTplTypeInfo struct {
-	Type *Type
-	Name string
-	I    string
-	n    int
+	Type      *typeInfo
+	Name      string
+	ByteOrder string
+	I         string
+	n         int
 }
 
-func goTypeInfo(t interface{}) *goTplTypeInfo {
+func goTypeInfo(t interface{}, byteOrder string) *goTplTypeInfo {
 	switch t1 := t.(type) {
-	case *Field:
+	case *fieldInfo:
 		return &goTplTypeInfo{
-			t1.Type, "s." + t1.Name, "i0", 0,
+			t1.Type, "s." + t1.Name, byteOrder, "i0", 0,
 		}
 	case *goTplTypeInfo:
 		t2 := *t1
@@ -106,35 +98,23 @@ func goMarshalFunc(t *goTplTypeInfo) string {
 	switch t.Type.Name {
 	case "bool":
 		fmt.Fprintf(&buf, "if %s { w.WriteUint8(1) } else { w.WriteUint8(0) }", t.Name)
-	case "int":
-		fmt.Fprintf(&buf, "w.WriteIntLE(%s)", t.Name)
-	case "uint":
-		fmt.Fprintf(&buf, "w.WriteUintLE(%s)", t.Name)
-	case "int8":
-		fmt.Fprintf(&buf, "w.WriteInt8(%s)", t.Name)
-	case "uint8", "byte":
-		fmt.Fprintf(&buf, "w.WriteUint8(%s)", t.Name)
-	case "int16":
-		fmt.Fprintf(&buf, "w.WriteInt16LE(%s)", t.Name)
-	case "uint16":
-		fmt.Fprintf(&buf, "w.WriteUint16LE(%s)", t.Name)
-	case "int32":
-		fmt.Fprintf(&buf, "w.WriteInt32LE(%s)", t.Name)
-	case "uint32":
-		fmt.Fprintf(&buf, "w.WriteUint32LE(%s)", t.Name)
-	case "int64":
-		fmt.Fprintf(&buf, "w.WriteInt64LE(%s)", t.Name)
-	case "uint64":
-		fmt.Fprintf(&buf, "w.WriteUint64LE(%s)", t.Name)
+	case "int8", "uint8", "byte":
+		fmt.Fprintf(&buf, "w.WriteUint8(uint8(%s))", t.Name)
+	case "int16", "uint16":
+		fmt.Fprintf(&buf, "w.WriteUint16%s(uint16(%s))", t.ByteOrder, t.Name)
+	case "int32", "uint32":
+		fmt.Fprintf(&buf, "w.WriteUint32%s(uint32(%s))", t.ByteOrder, t.Name)
+	case "int", "uint", "int64", "uint64":
+		fmt.Fprintf(&buf, "w.WriteUint64%s(uint64(%s))", t.ByteOrder, t.Name)
 	case "float32":
-		fmt.Fprintf(&buf, "w.WriteFloat32LE(%s)", t.Name)
+		fmt.Fprintf(&buf, "w.WriteFloat32%s(%s)", t.ByteOrder, t.Name)
 	case "float64":
-		fmt.Fprintf(&buf, "w.WriteFloat64LE(%s)", t.Name)
+		fmt.Fprintf(&buf, "w.WriteFloat64%s(%s)", t.ByteOrder, t.Name)
 	case "string":
-		fmt.Fprintf(&buf, "w.WriteUint16LE(uint16(len(%s))); w.WriteString(%s)", t.Name, t.Name)
+		fmt.Fprintf(&buf, "w.WriteUint16%s(uint16(len(%s))); w.WriteString(%s)", t.ByteOrder, t.Name, t.Name)
 	case "[]byte":
 		if t.Type.Len == "" {
-			fmt.Fprintf(&buf, "w.WriteUint16LE(uint16(len(%s))); w.WriteBytes(%s)", t.Name, t.Name)
+			fmt.Fprintf(&buf, "w.WriteUint16%s(uint16(len(%s))); w.WriteBytes(%s)", t.ByteOrder, t.Name, t.Name)
 		} else {
 			fmt.Fprintf(&buf, "w.WriteBytes(%s[:])", t.Name)
 		}
@@ -148,38 +128,26 @@ func goUnmarshalFunc(t *goTplTypeInfo) string {
 	var buf bytes.Buffer
 	switch t.Type.Name {
 	case "bool":
-		fmt.Fprintf(&buf, "%s = r.ReadUint8() > 0", t.Name)
-	case "int":
-		fmt.Fprintf(&buf, "%s = r.ReadIntLE()", t.Name)
-	case "uint":
-		fmt.Fprintf(&buf, "%s = r.ReadUintLE()", t.Name)
-	case "int8":
-		fmt.Fprintf(&buf, "%s = r.ReadInt8()", t.Name)
-	case "uint8", "byte":
-		fmt.Fprintf(&buf, "%s = r.ReadUint8()", t.Name)
-	case "int16":
-		fmt.Fprintf(&buf, "%s = r.ReadInt16LE()", t.Name)
-	case "uint16":
-		fmt.Fprintf(&buf, "%s = r.ReadUint16LE()", t.Name)
-	case "int32":
-		fmt.Fprintf(&buf, "%s = r.ReadInt32LE()", t.Name)
-	case "uint32":
-		fmt.Fprintf(&buf, "%s = r.ReadUint32LE()", t.Name)
-	case "int64":
-		fmt.Fprintf(&buf, "%s = r.ReadInt64LE()", t.Name)
-	case "uint64":
-		fmt.Fprintf(&buf, "%s = r.ReadUint64LE()", t.Name)
+		fmt.Fprintf(&buf, "%s = %s(r.ReadUint8() > 0)", t.Name, t.Type.DefName)
+	case "int8", "uint8", "byte":
+		fmt.Fprintf(&buf, "%s = %s(r.ReadUint8())", t.Name, t.Type.DefName)
+	case "int16", "uint16":
+		fmt.Fprintf(&buf, "%s = %s(r.ReadUint16%s())", t.Name, t.Type.DefName, t.ByteOrder)
+	case "int32", "uint32":
+		fmt.Fprintf(&buf, "%s = %s(r.ReadUint32%s())", t.Name, t.Type.DefName, t.ByteOrder)
+	case "int", "uint", "int64", "uint64":
+		fmt.Fprintf(&buf, "%s = %s(r.ReadUint64%s())", t.Name, t.Type.DefName, t.ByteOrder)
 	case "float32":
-		fmt.Fprintf(&buf, "%s = r.ReadFloat32LE()", t.Name)
+		fmt.Fprintf(&buf, "%s = %s(r.ReadFloat32%s())", t.Name, t.Type.DefName, t.ByteOrder)
 	case "float64":
-		fmt.Fprintf(&buf, "%s = r.ReadFloat64LE()", t.Name)
+		fmt.Fprintf(&buf, "%s = %s(r.ReadFloat64%s())", t.Name, t.Type.DefName, t.ByteOrder)
 	case "string":
-		fmt.Fprintf(&buf, "%s = r.ReadString(int(r.ReadUint16LE()))", t.Name)
+		fmt.Fprintf(&buf, "%s = %s(r.ReadString(int(r.ReadUint16%s())))", t.Name, t.Type.DefName, t.ByteOrder)
 	case "[]byte":
 		if t.Type.Len == "" {
-			fmt.Fprintf(&buf, "%s = r.ReadBytes(int(r.ReadUint16LE()))", t.Name)
+			fmt.Fprintf(&buf, "%s = %s(r.ReadBytes(int(r.ReadUint16%s())))", t.Name, t.Type.DefName, t.ByteOrder)
 		} else {
-			fmt.Fprintf(&buf, "io.ReadFull(r. %s[:])", t.Name, t.Type.Len)
+			fmt.Fprintf(&buf, "io.ReadFull(r, %s[:])", t.Name, t.Type.Len)
 		}
 	default:
 		fmt.Fprintf(&buf, "%s.UnmarshalReader(r)", t.Name)

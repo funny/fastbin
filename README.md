@@ -15,56 +15,74 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 Go代码生成
 =========
 
-这个工具将为指定代码中的每个结构体生成以下方法：
+fastbin将为代码中加了`fastbin:message`标签的结构体生成以下方法：
 
 ```go
 import "github.com/funny/binary"
 
 type FastBin interface {
-	// 这个方法用于测量序列化后的数据长度
-	// 用于在反序列化前一次性准备好足够大的内存空间
-	// 请参考 github.com/funny/link 文档中分包协议效率的优化提示
+	// 这个方法用于实现link分包协议要求的 PacketMarshaler 接口
 	BinarySize() (n int)
-
-	// 这个方法实现了 encoding.BinaryMarshaler 接口
-	// 由于接口的要求是由内部返回[]byte，所以无法优化[]byte的重用
-	// 建议在实际项目中避免使用
-	MarshalBinary() (data []byte, err error)
-
-	// 这个方法实现了 encoding.BinaryUnmarshaler 接口
-	UnmarshalBinary(data []byte) error
+	
+	// 这个方法用于实现link分包协议要求的 PacketMarshaler 接口
+	MarshalPacket(p []byte)
+	
+	// 这个方法用于实现link分包协议要求的 PacketUnmarshaler 接口
+	UnmarshalPacket(p []byte)
 
 	// 将结构体的内容序列化到BinaryWriter中
-	MarshalWriter(buf binary.BinaryWriter)
+	MarshalWriter(w binary.BinaryWriter)
 
 	// 从BinaryReader中反序列化出结构体数据
 	UnmarshalReader(r binary.BinaryReader)
 }
 ```
 
-由于`MarshalBinary`方法要求无参数，所以没有什么机会可以重用`[]byte`，非要做当然也可以，但是代码和效率都不会太好。
+格式示例：
 
-所以fastbin另外生成了`MarshalWriter`方法，可以从外部传入预备好的`*binary.Buffer`，这个`Buffer`必须空间够大，通常是先通过`BinarySize()`度量好消息长度后预备好`Buffer`，再传入`MarshalWriter`中。
+```go
+//fastbin:message
+type MyMessage struct {
+		Field1 int
+		Field2 string
+}
+```
 
-实际项目中建议能重用`Buffer`的时候就尽量重用，可以减少不必要对象创建和内存申请。
+fastbin是一个命令行程序，在命令行中使用的方式有三种：
 
-Go项目中可以结合`go generate`命令使用，在需要生成代码的文件开头加上`go generate`指令：
+1. 分析并生成指定文件夹的代码：
+	```
+	fastbin ./
+	
+	fastbin ./mypackage
+	
+	fastbin /mypackage
+	```
+2. 分析并生成当前文件夹及子一级文件夹的代码：
+	```
+	fastbin ./...
+	```
+3. 分析并生成当前`$GOPATH`中所有文件夹中的代码：
+	```
+	fastbin ...
+	```
+
+除了命令行执行之外，也可以结合`go generate`命令使用，只在需要生成代码的文件开头加上`go generate`指令：
 
 ```go
 //go:generate $GOPATH/bin/fastbin
 package demo
 
-type Test struct {
-	Field1 int
-	Field2 string
+//fastbin:message
+type MyMessage struct {
+		Field1 int
+		Field2 string
 }
 ```
 
-如果你的`$GOPATH/bin`在`$PATH`环境变量里，可以用更简单的指令：`//go:generate fastbin`
+如果你的`$GOPATH/bin`在`$PATH`环境变量里，可以用更简单的格式：`//go:generate fastbin`
 
-在需要生成代码的包的根目录或者项目根目录执行`go generate ./...`即可执行当前目录以及子目录下所有加了`//go:generate`标记的命令。
-
-也可以在命令行单独指定需要生成的文件，例如：`go generate demo.go`。
+`go generate`同样支持`./...`和`...`的特殊用法，可以不用在所有代码上都加指令。
 
 格式
 ====

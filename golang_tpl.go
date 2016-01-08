@@ -9,21 +9,54 @@ func line(s string) string {
 }
 
 var goTemplate = `
-package {{.Package}}
+{{range .Services}}
 
-import "github.com/funny/binary"
+{{if .ID}}
+func (s {{.Recv}}) ServiceID() byte {
+	return {{.ID}}
+}
+{{end}}
 
-{{range .Structs}}
-	{{UnsetNeedN}}
-func (s *{{.Name}}) MarshalBinary() (data []byte, err error) {
-	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalWriter(&buf)
-	data = buf.Data[:buf.WritePos]
-	return
+func (s {{.Recv}}) DecodeRequest(p []byte) func(s *link.Session) {
+	{{if .Methods}}
+	switch p[0] {
+	{{range .Methods}}
+	case {{.ID}}:
+		req := new({{.Type}})
+		req.UnmarshalPacket(p)
+		return func(s *link.Session) {
+			s.{{.Name}}(s, req)
+		}
+	{{end}}
+	}
+	{{end}}
+	panic("{{.Recv}}: Unknow Message Type")
 }
 
-func (s *{{.Name}}) UnmarshalBinary(data []byte) error {
-	s.UnmarshalReader(&binary.Buffer{Data:data})
+{{end}}
+
+{{range .Messages}}
+	{{template "Struct" .}}
+{{end}}
+
+{{define "Struct"}}
+	{{UnsetNeedN}}
+
+{{if .ID}}
+func (s *{{.Name}}) MessageID() byte {
+	return {{.ID}}
+}
+{{end}}
+
+func (s *{{.Name}}) MarshalPacket(p []byte) error {
+	var buf = binary.Buffer{Data: p}
+	s.MarshalWriter(&buf)
+	return nil
+}
+
+func (s *{{.Name}}) UmarshalPacket(p []byte) error {
+	var buf = binary.Buffer{Data: p}
+	s.UnmarshalReader(&buf)
 	return nil
 }
 
@@ -56,6 +89,7 @@ func (s *{{.Name}}) UnmarshalReader(r binary.BinaryReader) {
 		{{template "Unmarshal" (TypeInfo .)}}
 	{{end}}
 }
+
 {{end}}
 
 ` + line(`
@@ -98,7 +132,7 @@ func (s *{{.Name}}) UnmarshalReader(r binary.BinaryReader) {
 {{define "Marshal"}}
 	{{if .Type.IsArray}}
 		{{if not .Type.Len}}
-			w.WriteUint16LE(uint16(len({{.Name}})))
+			w.WriteUint16{{.ByteOrder}}(uint16(len({{.Name}})))
 		{{end}}
 		for {{.I}} := 0; {{.I}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.I}}++ {
 			{{template "Marshal" (TypeInfo .)}}
@@ -122,7 +156,7 @@ func (s *{{.Name}}) UnmarshalReader(r binary.BinaryReader) {
 {{define "Unmarshal"}}
 	{{if .Type.IsArray}}
 		{{if not .Type.Len}}
-			n = int(r.ReadUint16LE())
+			n = int(r.ReadUint16{{.ByteOrder}}())
 			{{.Name}} = make({{TypeName .Type}}, n)
 		{{end}}
 		for {{.I}} := 0; {{.I}}< {{if .Type.Len}}{{.Type.Len}}{{else}}n{{end}}; {{.I}}++ {

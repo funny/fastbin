@@ -8,10 +8,12 @@ import (
 	"github.com/funny/binary"
 )
 
+// fastbin:message
 type AddressBook struct {
 	Person []Person
 }
 
+// fastbin:message
 type Person struct {
 	Name  string
 	Id    int32
@@ -19,6 +21,7 @@ type Person struct {
 	Phone []PhoneNum
 }
 
+// fastbin:message
 type PhoneNum struct {
 	Number string
 	Type   int32

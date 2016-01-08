@@ -1,6 +1,7 @@
 //go:generate $GOPATH/bin/fastbin
 package main
 
+// fastbin:message
 type SimpleTypes struct {
 	Field0  bool
 	Field1  int8
@@ -19,6 +20,7 @@ type SimpleTypes struct {
 	Field14 MyType1
 }
 
+// fastbin:message
 type Points struct {
 	Field0  *bool
 	Field1  *int8
@@ -38,6 +40,7 @@ type Points struct {
 	Field15 *MyType1
 }
 
+// fastbin:message
 type Arrays struct {
 	Field0  []bool
 	Field1  []int8
@@ -57,6 +60,7 @@ type Arrays struct {
 	Field15 []MyType1
 }
 
+// fastbin:message
 type SizedArray struct {
 	Field0  [10]bool
 	Field1  [10]int8
@@ -76,6 +80,7 @@ type SizedArray struct {
 	Field15 [10]MyType1
 }
 
+// fastbin:message
 type ComplexCase struct {
 	PointOfPoint        **string
 	ArrayOfPoint        []*int
@@ -87,6 +92,7 @@ type ComplexCase struct {
 	WTF                 *[][10]**[11][]string
 }
 
+// fastbin:message
 type MyType1 struct {
 	Field1 []MyType2
 	Field2 []*MyType2
@@ -97,6 +103,7 @@ type MyType1 struct {
 	Field7 [][13]*[][14]*MyType2
 }
 
+// fastbin:message
 type MyType2 struct {
 	Field1 int
 }
