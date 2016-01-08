@@ -17,15 +17,15 @@ func (s {{.Recv}}) ServiceID() byte {
 }
 {{end}}
 
-func (s {{.Recv}}) DecodeRequest(p []byte) func(s *link.Session) {
+func (s {{.Recv}}) DecodeRequest(p []byte) func(*link.Session) {
 	{{if .Methods}}
 	switch p[0] {
 	{{range .Methods}}
 	case {{.ID}}:
 		req := new({{.Type}})
 		req.UnmarshalPacket(p)
-		return func(s *link.Session) {
-			s.{{.Name}}(s, req)
+		return func(ss *link.Session) {
+			s.{{.Name}}(ss, req)
 		}
 	{{end}}
 	}
@@ -54,7 +54,7 @@ func (s *{{.Name}}) MarshalPacket(p []byte) error {
 	return nil
 }
 
-func (s *{{.Name}}) UmarshalPacket(p []byte) error {
+func (s *{{.Name}}) UnmarshalPacket(p []byte) error {
 	var buf = binary.Buffer{Data: p}
 	s.UnmarshalReader(&buf)
 	return nil
@@ -103,11 +103,14 @@ func (s *{{.Name}}) UnmarshalReader(r binary.BinaryReader) {
 `) + `
 {{define "TypeSize"}}
 	{{if .Type.IsArray}}
+		{{if not .Type.Len}}
+			{{SetNeedN}}
+		{{end}}
 		{{if .Type.Type.Size}}
 			n += len({{.Name}}) * {{.Type.Type.Size}}
 		{{else}}
 			{{if not .Type.Len}}
-				n += 2{{SetNeedN}}
+				n += 2
 			{{end}}
 			for {{.I}} := 0; {{.I}}< {{if .Type.Len}}{{.Type.Len}}{{else}}len({{.Name}}){{end}}; {{.I}}++ {
 				{{template "TypeSize" (TypeInfo .)}}

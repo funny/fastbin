@@ -1,4 +1,3 @@
-//go:generate $GOPATH/bin/fastbin
 package main
 
 // fastbin:message

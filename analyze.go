@@ -80,11 +80,11 @@ func parseFiles(root string) (string, *token.FileSet, map[string]*ast.File) {
 	fset := token.NewFileSet()
 	files := make(map[string]*ast.File)
 	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		isKissFile, err := filepath.Match("*.kiss.go", info.Name())
+		isFbFile, err := filepath.Match("*.fb.go", info.Name())
 		if err != nil {
-			log.Fatal("match *.kiss.go file failed: %s", err)
+			log.Fatal("match *.fb.go file failed: %s", err)
 		}
-		if isKissFile {
+		if isFbFile {
 			return nil
 		}
 		isGoFile, err := filepath.Match("*.go", info.Name())
@@ -119,22 +119,22 @@ func analyzeConstTypes(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 	}
 }
 
-// find 'kiss:message'
+// find 'fastbin:message'
 func analyzeMessages(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 	for _, t := range pkgDoc.Types {
 		if matches := msgRegexp.FindStringSubmatch(t.Doc); len(matches) > 0 {
 			typeSpce, ok := t.Decl.Specs[0].(*ast.TypeSpec)
 			if !ok {
-				log.Fatalf("Found 'kiss:message' tag on non-struct type '%s'", t.Name)
+				log.Fatalf("Found 'fastbin:message' tag on non-struct type '%s'", t.Name)
 			}
 			structType, ok := typeSpce.Type.(*ast.StructType)
 			if !ok {
-				log.Fatalf("Found 'kiss:message' tag on non-struct type '%s'", t.Name)
+				log.Fatalf("Found 'fastbin:message' tag on non-struct type '%s'", t.Name)
 			}
 			structInfo := analyzeStruct(pkgInfo, matches[1], t.Name, structType)
 			pkgInfo.Messages[t.Name] = structInfo
 			if structInfo.ID != "" {
-				log.Printf("\tMessage '%s', id = %s", t.Name, structInfo.ID)
+				log.Printf("\tMessage '%s', ID = %s", t.Name, structInfo.ID)
 			} else {
 				log.Printf("\tMessage '%s'", t.Name)
 			}
@@ -143,7 +143,7 @@ func analyzeMessages(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 	}
 }
 
-// find 'kiss:service'
+// find 'fastbin:service'
 func analyzeServices(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 	for _, t := range pkgDoc.Types {
 		if matches := svcRegexp.FindStringSubmatch(t.Doc); len(matches) > 0 {
@@ -155,7 +155,7 @@ func analyzeServices(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 			pkgInfo.Services[t.Name] = service
 
 			if service.ID != "" {
-				log.Printf("\tService '%s', id = %s", service.Name, service.ID)
+				log.Printf("\tService '%s', ID = %s", service.Name, service.ID)
 			} else {
 				log.Printf("\tService '%s'", service.Name)
 			}
@@ -192,31 +192,48 @@ func analyzeMethod(pkgInfo *packageInfo, m *doc.Func) (msg *structInfo) {
 		return
 	}
 
-	// first parameter must kiss.Me
-	if arg, ok := params.List[0].Type.(*ast.SelectorExpr); !ok || arg.Sel.Name != "Me" {
-		log.Printf("\t\tIgnore method '%s', first parameter not kiss.Me", m.Name)
+	// first parameter must *link.Session
+	arg1, ok := params.List[0].Type.(*ast.StarExpr)
+	if !ok {
+		log.Printf("\t\tIgnore method '%s', first parameter not a pointer", m.Name)
+		return
+	}
+	arg1Sel, ok := arg1.X.(*ast.SelectorExpr)
+	if !ok {
+		log.Printf("\t\tIgnore method '%s', first parameter not a selector", m.Name)
+		return
+	}
+	arg1SelX, ok := arg1Sel.X.(*ast.Ident)
+	if !ok {
+		log.Printf("\t\tIgnore method '%s', first parameter not a package selector", m.Name)
+		return
+	}
+	if arg1SelX.Name != "link" || arg1Sel.Sel.Name != "Session" {
+		log.Printf("\t\tIgnore method '%s', first parameter *link.Session", m.Name)
 		return
 	}
 
 	// match message type
-	if arg, ok := params.List[1].Type.(*ast.StarExpr); ok {
-		if argType, ok := arg.X.(*ast.Ident); ok {
-			msg, ok = pkgInfo.Messages[argType.Name]
-			if ok {
-				if msg.ID != "" {
-					log.Printf("\t\tMethod '%s', id = %s", m.Name, msg.ID)
-				} else {
-					log.Printf("\t\tMethod '%s'", m.Name)
-				}
-				return
-			}
-			log.Printf("\t\tIgnore method '%s', second parameter not a message", m.Name)
-			return
-		}
+	arg2, ok := params.List[1].Type.(*ast.StarExpr)
+	if !ok {
+		log.Printf("\t\tIgnore method '%s', second parameter not a pointer", m.Name)
+		return
+	}
+	arg2Type, ok := arg2.X.(*ast.Ident)
+	if !ok {
 		log.Printf("\t\tIgnore method '%s', second parameter not point to an identity", m.Name)
 		return
 	}
-	log.Printf("\t\tIgnore method '%s', second parameter not a pointer", m.Name)
+	msg, ok = pkgInfo.Messages[arg2Type.Name]
+	if !ok {
+		log.Printf("\t\tIgnore method '%s', second parameter not a message", m.Name)
+		return
+	}
+	if msg.ID != "" {
+		log.Printf("\t\tHandler '%s', ID = %s", m.Name, msg.ID)
+		return
+	}
+	log.Printf("\t\tHandler '%s'", m.Name)
 	return
 }
 
