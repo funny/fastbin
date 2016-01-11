@@ -35,10 +35,11 @@ type methodInfo struct {
 }
 
 type structInfo struct {
-	ID      string
-	Package string
-	Name    string
-	Fields  []*fieldInfo
+	ID        string
+	ServiceID string
+	Package   string
+	Name      string
+	Fields    []*fieldInfo
 }
 
 type fieldInfo struct {
@@ -134,9 +135,9 @@ func analyzeMessages(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 			structInfo := analyzeStruct(pkgInfo, matches[1], t.Name, structType)
 			pkgInfo.Messages[t.Name] = structInfo
 			if structInfo.ID != "" {
-				log.Printf("\tMessage '%s', ID = %s", t.Name, structInfo.ID)
+				log.Printf("\t+ Message '%s', ID = %s", t.Name, structInfo.ID)
 			} else {
-				log.Printf("\tMessage '%s'", t.Name)
+				log.Printf("\t+ Message '%s'", t.Name)
 			}
 			continue
 		}
@@ -174,6 +175,7 @@ func analyzeServices(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 						t.Name, m.Name, service.Recv, m.Recv)
 				}
 
+				msg.ServiceID = service.ID
 				service.Methods = append(service.Methods, &methodInfo{
 					ID:   msg.ID,
 					Name: m.Name,
@@ -229,11 +231,15 @@ func analyzeMethod(pkgInfo *packageInfo, m *doc.Func) (msg *structInfo) {
 		log.Printf("\t\tIgnore method '%s', second parameter not a message", m.Name)
 		return
 	}
-	if msg.ID != "" {
-		log.Printf("\t\tHandler '%s', ID = %s", m.Name, msg.ID)
+	if msg.ServiceID != "" {
+		log.Printf("\t\tMessage '%s' was handled by service: %s", m.Name, msg.ServiceID)
 		return
 	}
-	log.Printf("\t\tHandler '%s'", m.Name)
+	if msg.ID != "" {
+		log.Printf("\t\t+ Handler '%s', ID = %s", m.Name, msg.ID)
+		return
+	}
+	log.Printf("\t\t+ Handler '%s'", m.Name)
 	return
 }
 

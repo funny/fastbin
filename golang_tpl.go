@@ -17,16 +17,14 @@ func (s {{.Recv}}) ServiceID() byte {
 }
 {{end}}
 
-func (s {{.Recv}}) DecodeRequest(p []byte) func(*link.Session) {
+func (s {{.Recv}}) NewRequest(id byte) (link.FbMessage, link.FbHandler) {
 	{{if .Methods}}
-	switch p[0] {
+	switch id {
 	{{range .Methods}}
 	case {{.ID}}:
-		req := new({{.Type}})
-		req.UnmarshalPacket(p)
-		return func(ss *link.Session) {
-			s.{{.Name}}(ss, req)
-		}
+		return new({{.Type}}), link.FbHandler(func(ss *link.Session, msg link.FbMessage) {
+			s.{{.Name}}(ss, msg.(*{{.Type}}))
+		})
 	{{end}}
 	}
 	{{end}}
@@ -48,6 +46,12 @@ func (s *{{.Name}}) MessageID() byte {
 }
 {{end}}
 
+{{if .ServiceID}}
+func (s {{.Name}}) ServiceID() byte {
+	return {{.ServiceID}}
+}
+{{end}}
+
 func (s *{{.Name}}) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
 	s.MarshalWriter(&buf)
@@ -55,19 +59,18 @@ func (s *{{.Name}}) MarshalBinary() (data []byte, err error) {
 }
 
 func (s *{{.Name}}) UnmarshalBinary(data []byte) error {
-	return s.UnmarshalPacket(data)
+	s.UnmarshalPacket(data)
+	return nil
 }
 
-func (s *{{.Name}}) MarshalPacket(p []byte) error {
+func (s *{{.Name}}) MarshalPacket(p []byte) {
 	var buf = binary.Buffer{Data: p}
 	s.MarshalWriter(&buf)
-	return nil
 }
 
-func (s *{{.Name}}) UnmarshalPacket(p []byte) error {
+func (s *{{.Name}}) UnmarshalPacket(p []byte) {
 	var buf = binary.Buffer{Data: p}
 	s.UnmarshalReader(&buf)
-	return nil
 }
 
 func (s *{{.Name}}) BinarySize() (n int) {
