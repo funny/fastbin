@@ -126,6 +126,8 @@ func (s *MyService) HandleMessage1(session *link.Session, msg *Message1) {
 
 还需要注意，只有直接用于接收和发送的消息才需要有消息类型ID，消息内嵌套的类型是不需要指定ID的。
 
+当一个消息类型被指定的服务端接口接管时，这个消息类型会增加一个`ServiceID()`方法，在link发送该类型消息时用来让对方知道当前收到的是哪个服务下的哪种消息类型。
+
 fastbin将为每个标注了`fb:service`标签的类型生成`NewRequest()`方法。
 
 `NewRequest()`方法中会根据消息的第一个字节来识别消息类型，然后实例化对应的消息对象，并返回这种消息类型对应的处理接口。
@@ -138,7 +140,7 @@ fastbin将为每个标注了`fb:service`标签的类型生成`NewRequest()`方�
 协议格式
 =======
 
-fastbin的序列化逻辑很简单，按字段顺序执行序列化和反序列化。
+fastbin的序列化逻辑很简单，按字段顺序执行序列化和反序列化，默认使用小端格式编码多字节数值。
 
 fastbin支持以下基本类型：
 
