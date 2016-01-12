@@ -8,7 +8,7 @@ import (
 	"text/template"
 )
 
-func generateGolang(pkg *packageInfo, byteOrder string) (head, code []byte) {
+func generateGolang(file *fileInfo, byteOrder string) (head, code []byte) {
 	needN := false
 	tpl := template.Must(template.New("code").Funcs(template.FuncMap{
 		"TypeName":      goTypeName,
@@ -31,13 +31,13 @@ func generateGolang(pkg *packageInfo, byteOrder string) (head, code []byte) {
 	}).Parse(goTemplate))
 
 	var bf bytes.Buffer
-	err := tpl.Execute(&bf, pkg)
+	err := tpl.Execute(&bf, file)
 	if err != nil {
 		log.Fatalf("Generate code failed: %s", err)
 	}
 
-	headStr := "package " + pkg.Name + "\n\n import \"github.com/funny/binary\"\n\n"
-	if len(pkg.Services) > 0 {
+	headStr := "package " + file.Package + "\n\nimport \"github.com/funny/binary\"\n\n"
+	if len(file.Services) > 0 {
 		headStr += `import "github.com/funny/link"`
 	}
 	head = []byte(headStr)

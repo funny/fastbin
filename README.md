@@ -8,41 +8,41 @@ NOTE：此工具还在持续开发中，可能会有较大改动。
 
 更多介绍：[http://zhuanlan.zhihu.com/idada/20410055](http://zhuanlan.zhihu.com/idada/20410055)
 
-Go代码生成
-=========
+基本用法
+=======
 
-fastbin将为代码中加了`fb:message`标签的结构体生成以下方法：
+fastbin将自动为代码中加了`fb:message`标签的结构体类型生成实现以下接口的方法：
 
 ```go
+import "encoding"
+import "github.com/funny/link"
 import "github.com/funny/binary"
 
-type FastBin interface {
-	// 这个方法用于实现 encoding.BinaryMarshaler 接口
-	// 可以对gob序列化起到加速作用
-	MarshalBinary() (data []byte, err error)
-
-	// 这个方法实现了 encoding.BinaryUnmarshaler 接口
-	// 可以对gob反序列化起到加速作用
-	UnmarshalBinary(data []byte) error
-	
-	// 这个方法用于实现link分包协议要求的 PacketMarshaler 接口
-	BinarySize() (n int)
-	
-	// 这个方法用于实现link分包协议要求的 PacketMarshaler 接口
-	MarshalPacket(p []byte)
-	
-	// 这个方法用于实现link分包协议要求的 PacketUnmarshaler 接口
-	UnmarshalPacket(p []byte)
-
+type FastbinMarshaler interface {
 	// 将结构体的内容序列化到 BinaryWriter 中
 	MarshalWriter(w binary.BinaryWriter)
+}
 
+type FastbinUnmarshaler interface {
 	// 从 BinaryReader 中反序列化出结构体数据
 	UnmarshalReader(r binary.BinaryReader)
 }
+
+type Fastbin interface {
+	// 配合link使用所需的接口
+	link.FbMessage
+
+	// 基本的序列化反序列化接口
+	FastbinMarshaler
+	FastbinUnmarshaler
+	
+	// 可对gob起到加速作用
+	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
+}
 ```
 
-格式示例：
+注释标签用法示例：
 
 ```go
 //fb:message
@@ -52,36 +52,20 @@ type MyMessage struct {
 }
 ```
 
-fastbin的代码分析和生成是以包为单位的，每个包会生成一份以包名命名的`.fb.go`文件。
+fastbin的代码分析是以包为单位的，代码生成是以文件为单位的。
 
-分析和生成支持一下三种用法：
+示例，分析当前目录下的包：
 
-1. 分析并生成指定文件夹的代码：
+```
+fastbin
+```
 
-	```
-	fastbin ./
-	
-	fastbin ./mypackage
-	
-	fastbin /mypackage
-	```
-	
-2. 分析并生成当前文件夹及子一级文件夹的代码：
-
-	```
-	fastbin ./...
-	```
-	
-3. 分析并生成当前`$GOPATH`中所有文件夹中的代码：
-
-	```
-	fastbin ...
-	```
+目前fastbin没有额外的命令行参数，但是之后的版本中可能会通过命令行参数来支持不同语言的代码的生成。
 
 除了命令行执行之外，也可以结合`go generate`命令使用，只在需要生成代码的文件开头加上`go generate`指令：
 
 ```go
-//go:generate $GOPATH/bin/fastbin
+//go:generate fastbin
 package demo
 
 //fb:message
@@ -91,19 +75,72 @@ type MyMessage struct {
 }
 ```
 
-如果你的`$GOPATH/bin`在`$PATH`环境变量里，可以用更简单的格式：`//go:generate fastbin`
+如果你的`$GOPATH/bin`不在`$PATH`环境变量里，可以用这样的格式：`//go:generate $GOPATH/bin/fastbin`。
 
-`go generate`同样支持`./...`和`...`的特殊用法，可以不用在所有代码上都加指令。
+`go generate`的注释标签每个包只需要有一个文件有就可以，如果重复加标签就会重复生成代码。
+
+跟`go gnerate`结合有个好出，可以不用额外写脚本，只需要执行`go generate ./...`就可以遍历生成当前目录及子目录中所有加了`go generate`注释标签的代码。
+
+这在组织Go项目构建的时候很有用，`go generate`还支持`...`参数，这个参数会让`go gnerate`遍历`$GOPATH`下所有的包。
+
+配合link使用
+===========
+
+fastbin除了生成结构体的二进制序列化代码以外，还可以配合link使用，变成服务接口的代码生成工具。
+
+fastbin和link配合使用时，需要先理解服务和消息的概念，上面我们知道fastbin有`fb:message`这个标签用来声明消息类型。
+
+默认的`fb:message`标签是不足以用来做消息类型识别的，除非用到反射或类型名，所以配合link使用时，接口消息需要有消息ID。
+
+所以标签的形式会变成这样：`fb:message = 123`，等号后面的消息ID是0 - 255之间的值。
+
+而一个通用的网络层不可能只支持255种消息类型，所以link要求以服务为单位来组织消息，因此我们需要用到一个新的标签`fb:service = n`。
+
+标签中的n一样是0 - 255之间的一个数，因此link支持255种服务类型，每个服务中又各支持255种消息类型，这样就足够大部分项目的使用需求了。
+
+服务由一系列的接口方法来处理不同的消息，当一个方法签名符合以下条件时，将被fastbin识别成消息处理接口：
+
+1. 第一个参数是`*link.Session`类型
+2. 第二个参数是标注了`fb:message = n`标签的有接口消息类型
+
+举例：
+
+```go
+
+//fb:service = 1
+type MyService struct {
+}
+
+//fb:message = 1
+type Message1 struct {
+	Field1 int
+	Field2 int
+}
+
+func (s *MyService) HandleMessage1(session *link.Session, msg *Message1) {
+	// ...
+}
+```
+
+例子中的`HandleMessage1`将被识别成`Message1`的处理接口。
+
+需要注意，一个消息类型只能由一个服务接口处理，出现重复的消息处理接口时就会报错，即便是方法名不一样或者服务类型不一样。
+
+fastbin将为每个标注了`fb:service`标签的类型生成`NewRequest()`方法。
+
+`NewRequest()`方法中会根据消息的第一个字节来识别消息类型，然后实例化对应的消息对象，并返回这种消息类型对应的处理接口。
+
+具体请参考link的文档和生成出来的代码：
+
+* [link主页](https://github.com/funny/link)
+* [demo/service.fb.go](https://github.com/funny/fastbin/blob/master/demo/service.fb.go)
 
 协议格式
 =======
 
-基本格式：
+fastbin的序列化逻辑很简单，按字段顺序执行序列化和反序列化。
 
-1. 按字段顺序执行序列化和反序列化
-2. 所有的多字节数值都以小端格式编码。
-
-支持以下基本类型：
+fastbin支持以下基本类型：
 
 | 类型 | 字节数 |
 |------|------|
@@ -113,7 +150,7 @@ type MyMessage struct {
 | `int`, `uint`, `int64`, `uint64`, `float64` | 8 |
 | `string`, `[]byte` | 2 + N |
 
-支持指针，指针类型比普通类型额外多一个字节区分空指针，指针值为0时表示空指针，空指针的后续内容长度为0：
+fastbin支持指针类型，指针比普通类型额外多一个字节用来区分空指针，指针值为0时表示空指针，空指针的后续内容长度为0：
 
 | 类型 | 字节数 |
 |------|------|
@@ -159,10 +196,15 @@ type MyMessage struct {
 | `*[][]int` | 指向二维数组的指针 |
 | `*[10]*[]**int` | 指向定长的指针的指针的数组的指针的数组的指针 |
 
+在配合link使用时，link会固定用4个字节的包头来做分包和消息分类，其中前2个字节是包体长度信息，第3个字节是服务类型ID，第4个字节是消息类型ID。
+
+所以配合link使用时如果需要发送64K以上的消息包，请在应用协议层面添加翻页或者分帧的设计。
+
 更详细的内容请参考生成后的代码：
 
-* [demo/demo.fast.go](https://github.com/funny/fastbin/blob/master/demo/demo.fast.go)
-* [demo/types.fast.go](https://github.com/funny/fastbin/blob/master/demo/types.fast.go)
+* [demo/demo.fb.go](https://github.com/funny/fastbin/blob/master/demo/demo.fb.go)
+* [demo/types.fb.go](https://github.com/funny/fastbin/blob/master/demo/types.fb.go)
+* [demo/service.fb.go](https://github.com/funny/fastbin/blob/master/demo/service.fb.go)
 
 关于体积和效率我按云风给sproto做的测试里的数据结构和数据做了测试。
 
@@ -211,53 +253,6 @@ Unmarshal 1M times: 638.01296ms
 反序列化过程因为有对象创建，所以开销较大，以后可以考虑加入对象池进行优化。
 
 注：云风给sproto的测试是在lua里的，所以两者执行时间不具有可比性。
-
-消息识别和分发
-============
-
-fastbin同时还支持一种简单的消息识别和分发代码的生成。
-
-当一个消息类型使用`fb:message = 123`这样的标签格式指定了消息类型ID后，fastbin将为这个消息生成一个`MessageID()`方法，返回值为`byte`类型。
-
-也就是说可以有256种不同的消息，但是256种显然是不足以满足大项目的使用的，所以fastbin另外提供了一个标签：`fb:service`。
-
-当一个结构体被标注了`fb:service`标签时，fastbin将分析这个类型的所有方法，当一个方法符合以下条件时，将被视为消息处理接口：
-
-1. 第一个参数是`*link.Session`类型
-2. 第二个参数是标注了`fb:message`标签的消息类型
-
-举例：
-
-```go
-
-//fb:service
-type MyService struct {
-}
-
-//fb:message
-type Message1 struct {
-	Field1 int
-	Field2 int
-}
-
-func (s *MyService) HandleMessage1(session *link.Session, msg *Message1) {
-	// ...
-}
-```
-
-fastbin将为每个标注了`fb:service`标签的类型生成`DecodeRequest()`方法。
-
-`DecodeRequest()`方法中会根据消息的第一个字节来识别消息类型，然后实例化对应的消息对象，并调用fastbin生成的反序列化方法。
-
-接着`DecodeRequest()`会以`func(*link.Session)`的闭包函数返回消息处理接口的调用入口。
-
-外部就可以调用`DecodeRequest()`来解析具体消息类型，并获得对应消息类型的处理接口，然后调用。
-
-每个`fb:service`可以有自己的ID，fastbin一样会生成一个返回byte类型的`ServiceID()`方法。
-
-这样就可以有256个服务模块，每个服务模块可以有256种消息，足以满足大部分项目的需要。
-
-NOTE: 这部分特性目前还在开发中，可能会有较多变动，具体细节请参考demo中生成的代码。
 
 FAQ
 ===

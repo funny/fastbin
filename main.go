@@ -5,39 +5,18 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func main() {
 	flag.Parse()
 
-	root := "."
-	if len(flag.Args()) > 0 {
-		root = flag.Arg(0)
-	}
-
 	byteOrder := "LE"
-	if len(flag.Args()) > 1 {
-		byteOrder = flag.Arg(1)
+	if len(flag.Args()) > 0 {
+		byteOrder = flag.Arg(0)
 	}
 
-	if root == "..." || root == "./..." {
-		switch root {
-		case "...":
-			root = os.Getenv("GOPATH")
-		case "./...":
-			root = "."
-		}
-		filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-			if info != nil && info.IsDir() {
-				log.Println("scan", path)
-				scanDir(path, byteOrder)
-			}
-			return nil
-		})
-	} else {
-		root = filepath.Clean(root)
-		scanDir(root, byteOrder)
-	}
+	scanDir(".", byteOrder)
 }
 
 func scanDir(dir, byteOrder string) {
@@ -48,8 +27,10 @@ func scanDir(dir, byteOrder string) {
 	log.Print("Analyze ", absDir)
 	pkgInfo := analyzeDir(dir)
 	if len(pkgInfo.Services) > 0 || len(pkgInfo.Messages) > 0 {
-		head, code := generateGolang(pkgInfo, byteOrder)
-		save(dir, pkgInfo.Name+".fb.go", head, code)
+		for name, file := range pkgInfo.Files {
+			head, code := generateGolang(file, byteOrder)
+			save(dir, name[:strings.LastIndex(name, ".")]+".fb.go", head, code)
+		}
 	} else {
 		log.Println("Nothing to do")
 	}

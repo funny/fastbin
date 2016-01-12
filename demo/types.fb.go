@@ -1,64 +1,13 @@
 package main
 
- import "github.com/funny/binary"
+import "github.com/funny/binary"
 
-import "github.com/funny/link"
 
-func (s *MyService) ServiceID() byte {
-	return 1
-}
-func (s *MyService) NewRequest(id byte) (link.FbMessage, link.FbHandler) {
-	switch id {
-	case 1:
-		return new(MyMessage1), link.FbHandler(func(ss *link.Session, msg link.FbMessage) {
-			s.HandleMessage1(ss, msg.(*MyMessage1))
-		})
-	case 2:
-		return new(MyMessage2), link.FbHandler(func(ss *link.Session, msg link.FbMessage) {
-			s.HandleMessage2(ss, msg.(*MyMessage2))
-		})
-	}
-	panic("*MyService: Unknow Message Type")
-}
-func (s *AddressBook) MarshalBinary() (data []byte, err error) {
-	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalWriter(&buf)
-	return buf.Data, nil
-}
-func (s *AddressBook) UnmarshalBinary(data []byte) error {
-	s.UnmarshalPacket(data)
-	return nil
-}
-func (s *AddressBook) MarshalPacket(p []byte) {
-	var buf = binary.Buffer{Data: p}
-	s.MarshalWriter(&buf)
-}
-func (s *AddressBook) UnmarshalPacket(p []byte) {
-	var buf = binary.Buffer{Data: p}
-	s.UnmarshalReader(&buf)
-}
-func (s *AddressBook) BinarySize() (n int) {
+
 	
-	n += 2
-	for i0 := 0; i0 < len(s.Person); i0++ {
-		n += s.Person[i0].BinarySize()
-	}
-	return
-}
-func (s *AddressBook) MarshalWriter(w binary.BinaryWriter) {
-	w.WriteUint16LE(uint16(len(s.Person)))
-	for i0 := 0; i0 < len(s.Person); i0++ {
-		s.Person[i0].MarshalWriter(w)
-	}
-}
-func (s *AddressBook) UnmarshalReader(r binary.BinaryReader) {
-	var n int
-	n = int(r.ReadUint16LE())
-	s.Person = make([]Person, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Person[i0].UnmarshalReader(r)
-	}
-}
+	
+
+
 func (s *Arrays) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
 	s.MarshalWriter(&buf)
@@ -509,89 +458,6 @@ func (s *ComplexCase) UnmarshalReader(r binary.BinaryReader) {
 		}
 	}
 }
-func (s *MyMessage1) MessageID() byte {
-	return 1
-}
-func (s MyMessage1) ServiceID() byte {
-	return 1
-}
-func (s *MyMessage1) MarshalBinary() (data []byte, err error) {
-	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalWriter(&buf)
-	return buf.Data, nil
-}
-func (s *MyMessage1) UnmarshalBinary(data []byte) error {
-	s.UnmarshalPacket(data)
-	return nil
-}
-func (s *MyMessage1) MarshalPacket(p []byte) {
-	var buf = binary.Buffer{Data: p}
-	s.MarshalWriter(&buf)
-}
-func (s *MyMessage1) UnmarshalPacket(p []byte) {
-	var buf = binary.Buffer{Data: p}
-	s.UnmarshalReader(&buf)
-}
-func (s *MyMessage1) BinarySize() (n int) {
-	
-	n += 2 + len(s.Field1)
-	n += len(s.Field2) * 8
-	return
-}
-func (s *MyMessage1) MarshalWriter(w binary.BinaryWriter) {
-	w.WriteUint16LE(uint16(len(s.Field1)))
-	w.WriteBytes(s.Field1)
-	w.WriteUint16LE(uint16(len(s.Field2)))
-	for i0 := 0; i0 < len(s.Field2); i0++ {
-		w.WriteUint64LE(uint64(s.Field2[i0]))
-	}
-}
-func (s *MyMessage1) UnmarshalReader(r binary.BinaryReader) {
-	var n int
-	s.Field1 = (r.ReadBytes(int(r.ReadUint16LE())))
-	n = int(r.ReadUint16LE())
-	s.Field2 = make([]int, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Field2[i0] = int(r.ReadUint64LE())
-	}
-}
-func (s *MyMessage2) MessageID() byte {
-	return 2
-}
-func (s MyMessage2) ServiceID() byte {
-	return 1
-}
-func (s *MyMessage2) MarshalBinary() (data []byte, err error) {
-	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalWriter(&buf)
-	return buf.Data, nil
-}
-func (s *MyMessage2) UnmarshalBinary(data []byte) error {
-	s.UnmarshalPacket(data)
-	return nil
-}
-func (s *MyMessage2) MarshalPacket(p []byte) {
-	var buf = binary.Buffer{Data: p}
-	s.MarshalWriter(&buf)
-}
-func (s *MyMessage2) UnmarshalPacket(p []byte) {
-	var buf = binary.Buffer{Data: p}
-	s.UnmarshalReader(&buf)
-}
-func (s *MyMessage2) BinarySize() (n int) {
-	n = 8 
-	n += 2 + len(s.Field2)
-	return
-}
-func (s *MyMessage2) MarshalWriter(w binary.BinaryWriter) {
-	w.WriteUint64LE(uint64(s.Field1))
-	w.WriteUint16LE(uint16(len(s.Field2)))
-	w.WriteString(s.Field2)
-}
-func (s *MyMessage2) UnmarshalReader(r binary.BinaryReader) {
-	s.Field1 = int(r.ReadUint64LE())
-	s.Field2 = string(r.ReadString(int(r.ReadUint16LE())))
-}
 func (s *MyType1) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
 	s.MarshalWriter(&buf)
@@ -808,86 +674,6 @@ func (s *MyType2) MarshalWriter(w binary.BinaryWriter) {
 }
 func (s *MyType2) UnmarshalReader(r binary.BinaryReader) {
 	s.Field1 = int(r.ReadUint64LE())
-}
-func (s *Person) MarshalBinary() (data []byte, err error) {
-	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalWriter(&buf)
-	return buf.Data, nil
-}
-func (s *Person) UnmarshalBinary(data []byte) error {
-	s.UnmarshalPacket(data)
-	return nil
-}
-func (s *Person) MarshalPacket(p []byte) {
-	var buf = binary.Buffer{Data: p}
-	s.MarshalWriter(&buf)
-}
-func (s *Person) UnmarshalPacket(p []byte) {
-	var buf = binary.Buffer{Data: p}
-	s.UnmarshalReader(&buf)
-}
-func (s *Person) BinarySize() (n int) {
-	n = 4 
-	n += 2 + len(s.Name)
-	n += 2 + len(s.Email)
-	n += 2
-	for i0 := 0; i0 < len(s.Phone); i0++ {
-		n += s.Phone[i0].BinarySize()
-	}
-	return
-}
-func (s *Person) MarshalWriter(w binary.BinaryWriter) {
-	w.WriteUint16LE(uint16(len(s.Name)))
-	w.WriteString(s.Name)
-	w.WriteUint32LE(uint32(s.Id))
-	w.WriteUint16LE(uint16(len(s.Email)))
-	w.WriteString(s.Email)
-	w.WriteUint16LE(uint16(len(s.Phone)))
-	for i0 := 0; i0 < len(s.Phone); i0++ {
-		s.Phone[i0].MarshalWriter(w)
-	}
-}
-func (s *Person) UnmarshalReader(r binary.BinaryReader) {
-	var n int
-	s.Name = string(r.ReadString(int(r.ReadUint16LE())))
-	s.Id = int32(r.ReadUint32LE())
-	s.Email = string(r.ReadString(int(r.ReadUint16LE())))
-	n = int(r.ReadUint16LE())
-	s.Phone = make([]PhoneNum, n)
-	for i0 := 0; i0 < n; i0++ {
-		s.Phone[i0].UnmarshalReader(r)
-	}
-}
-func (s *PhoneNum) MarshalBinary() (data []byte, err error) {
-	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
-	s.MarshalWriter(&buf)
-	return buf.Data, nil
-}
-func (s *PhoneNum) UnmarshalBinary(data []byte) error {
-	s.UnmarshalPacket(data)
-	return nil
-}
-func (s *PhoneNum) MarshalPacket(p []byte) {
-	var buf = binary.Buffer{Data: p}
-	s.MarshalWriter(&buf)
-}
-func (s *PhoneNum) UnmarshalPacket(p []byte) {
-	var buf = binary.Buffer{Data: p}
-	s.UnmarshalReader(&buf)
-}
-func (s *PhoneNum) BinarySize() (n int) {
-	n = 4 
-	n += 2 + len(s.Number)
-	return
-}
-func (s *PhoneNum) MarshalWriter(w binary.BinaryWriter) {
-	w.WriteUint16LE(uint16(len(s.Number)))
-	w.WriteString(s.Number)
-	w.WriteUint32LE(uint32(s.Type))
-}
-func (s *PhoneNum) UnmarshalReader(r binary.BinaryReader) {
-	s.Number = string(r.ReadString(int(r.ReadUint16LE())))
-	s.Type = int32(r.ReadUint32LE())
 }
 func (s *Points) MarshalBinary() (data []byte, err error) {
 	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}

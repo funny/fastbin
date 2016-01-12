@@ -15,10 +15,20 @@ var svcRegexp = regexp.MustCompile(`^\s*fb:\s*service(?:\s*=\s*(\d+))?\s*$`)
 var msgRegexp = regexp.MustCompile(`^\s*fb:\s*message(?:\s*=\s*(\d+))?\s*$`)
 
 type packageInfo struct {
+	fset       *token.FileSet
 	Name       string
 	ConstTypes map[string]string
 	Services   map[string]*serviceInfo
 	Messages   map[string]*structInfo
+	Files      map[string]*fileInfo
+}
+
+type fileInfo struct {
+	Package    string
+	FilePath   string
+	ConstTypes map[string]string
+	Services   []*serviceInfo
+	Messages   []*structInfo
 }
 
 type serviceInfo struct {
@@ -59,16 +69,31 @@ type typeInfo struct {
 	IsArray  bool
 }
 
+func (pkgInfo *packageInfo) File(pos token.Pos) *fileInfo {
+	filename := pkgInfo.fset.File(pos).Name()
+	file, exists := pkgInfo.Files[filename]
+	if !exists {
+		file = &fileInfo{
+			Package:    pkgInfo.Name,
+			ConstTypes: pkgInfo.ConstTypes,
+		}
+		pkgInfo.Files[filename] = file
+	}
+	return file
+}
+
 func analyzeDir(root string) *packageInfo {
 	pkgName, fset, files := parseFiles(root)
 	pkgAst, _ := ast.NewPackage(fset, files, nil, nil)
 	pkgDoc := doc.New(pkgAst, pkgName, doc.AllDecls)
 
 	var pkgInfo = &packageInfo{
+		fset:       fset,
 		Name:       pkgName,
 		ConstTypes: make(map[string]string),
 		Services:   make(map[string]*serviceInfo),
 		Messages:   make(map[string]*structInfo),
+		Files:      make(map[string]*fileInfo),
 	}
 	analyzeConstTypes(pkgInfo, pkgDoc)
 	analyzeMessages(pkgInfo, pkgDoc)
@@ -132,8 +157,12 @@ func analyzeMessages(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 			if !ok {
 				log.Fatalf("Found 'fb:message' tag on non-struct type '%s'", t.Name)
 			}
+
 			structInfo := analyzeStruct(pkgInfo, matches[1], t.Name, structType)
 			pkgInfo.Messages[t.Name] = structInfo
+			file := pkgInfo.File(t.Decl.Pos())
+			file.Messages = append(file.Messages, structInfo)
+
 			if structInfo.ID != "" {
 				log.Printf("\t+ Message '%s', ID = %s", t.Name, structInfo.ID)
 			} else {
@@ -154,6 +183,8 @@ func analyzeServices(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 			}
 
 			pkgInfo.Services[t.Name] = service
+			file := pkgInfo.File(t.Decl.Pos())
+			file.Services = append(file.Services, service)
 
 			if service.ID != "" {
 				log.Printf("\tService '%s', ID = %s", service.Name, service.ID)
