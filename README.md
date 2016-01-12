@@ -179,7 +179,7 @@ fastbin支持指针类型，指针比普通类型额外多一个字节用来区�
 | `[N]int32`, `[N]uint32`, `[N]float32` | N * 4 |
 | `[N]int64`, `[N]uint64`, `[N]float64` | N * 8 |
 
-支持结构体嵌套和自定义类型，基本类型以为的所有其它类型都通过`MarshalBuffer``和`UnmarshalBuffer`进行序列化和反序列化：
+支持结构体嵌套和自定义类型，基本类型以为的所有其它类型都通过`MarshalWriter`和`UnmarshalReader`进行序列化和反序列化，所以类型嵌套时需要注意被嵌套的类型也要有`fb:message`标签：
 
 | 类型 | 字节数 |
 |------|------|
