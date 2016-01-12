@@ -88,11 +88,9 @@ type MyMessage struct {
 
 fastbin除了生成结构体的二进制序列化代码以外，还可以配合link使用，变成服务接口的代码生成工具。
 
-fastbin和link配合使用时，需要先理解服务和消息的概念，上面我们知道fastbin有`fb:message`这个标签用来声明消息类型。
+fastbin和link配合使用时，需要先理解服务和消息的概念，上面我们知道`fb:message`这个标签用来声明消息类型。
 
-默认的`fb:message`标签是不足以用来做消息类型识别的，除非用到反射或类型名，所以配合link使用时，接口消息需要有消息ID。
-
-所以标签的形式会变成这样：`fb:message = 123`，等号后面的消息ID是0 - 255之间的值。
+配合link使用时，我们需要给接口消息分配一个消息类型ID用来识别消息类型，所以标签的形式会变成这样：`fb:message = 123`，等号后面的消息ID是0 - 255之间的值。
 
 而一个通用的网络层不可能只支持255种消息类型，所以link要求以服务为单位来组织消息，因此我们需要用到一个新的标签`fb:service = n`。
 
@@ -125,6 +123,8 @@ func (s *MyService) HandleMessage1(session *link.Session, msg *Message1) {
 例子中的`HandleMessage1`将被识别成`Message1`的处理接口。
 
 需要注意，一个消息类型只能由一个服务接口处理，出现重复的消息处理接口时就会报错，即便是方法名不一样或者服务类型不一样。
+
+还需要注意，只有直接用于接收和发送的消息才需要有消息类型ID，消息内嵌套的类型是不需要指定ID的。
 
 fastbin将为每个标注了`fb:service`标签的类型生成`NewRequest()`方法。
 

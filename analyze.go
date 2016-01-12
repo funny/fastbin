@@ -35,7 +35,7 @@ type serviceInfo struct {
 	ID      string
 	Name    string
 	Recv    string
-	Methods []*methodInfo
+	Methods map[string]*methodInfo
 }
 
 type methodInfo struct {
@@ -47,6 +47,7 @@ type methodInfo struct {
 type structInfo struct {
 	ID        string
 	ServiceID string
+	APIName   string
 	Package   string
 	Name      string
 	Fields    []*fieldInfo
@@ -178,8 +179,9 @@ func analyzeServices(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 	for _, t := range pkgDoc.Types {
 		if matches := svcRegexp.FindStringSubmatch(t.Doc); len(matches) > 0 {
 			service := &serviceInfo{
-				ID:   matches[1],
-				Name: t.Name,
+				ID:      matches[1],
+				Name:    t.Name,
+				Methods: make(map[string]*methodInfo),
 			}
 
 			pkgInfo.Services[t.Name] = service
@@ -206,12 +208,22 @@ func analyzeServices(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 						t.Name, m.Name, service.Recv, m.Recv)
 				}
 
+				// check duplicate message ID
+				if mm, exists := service.Methods[msg.ID]; exists {
+					log.Fatalf(
+						"Duplicate message ID '%s' on '%s' for message type '%s', registed message is '%s' and handled by '%s'",
+						msg.ID, m.Name, msg.Name, mm.Type, mm.Name,
+					)
+				}
+
 				msg.ServiceID = service.ID
-				service.Methods = append(service.Methods, &methodInfo{
+				msg.APIName = service.Name + "." + m.Name
+				service.Methods[msg.ID] = &methodInfo{
 					ID:   msg.ID,
 					Name: m.Name,
 					Type: msg.Name,
-				})
+				}
+				log.Printf("\t\t+ Handler '%s'", m.Name)
 			}
 		}
 	}
@@ -262,15 +274,13 @@ func analyzeMethod(pkgInfo *packageInfo, m *doc.Func) (msg *structInfo) {
 		log.Printf("\t\tIgnore method '%s', second parameter not a message", m.Name)
 		return
 	}
+	if msg.ID == "" {
+		log.Printf("\t\tIgnore method '%s', second parameter not have message ID", m.Name)
+		return
+	}
 	if msg.ServiceID != "" {
-		log.Printf("\t\tMessage '%s' was handled by service: %s", m.Name, msg.ServiceID)
-		return
+		log.Fatalf("\t\t'%s' duplicate handle message '%s', registed handled is '%s'", m.Name, msg.Name, msg.APIName)
 	}
-	if msg.ID != "" {
-		log.Printf("\t\t+ Handler '%s', ID = %s", m.Name, msg.ID)
-		return
-	}
-	log.Printf("\t\t+ Handler '%s'", m.Name)
 	return
 }
 
