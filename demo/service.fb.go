@@ -10,11 +10,11 @@ func (s *MyService) ServiceID() byte {
 func (s *MyService) NewRequest(id byte) (link.FbMessage, link.FbHandler) {
 	switch id {
 	case 1:
-		return new(MyMessage1), link.FbHandler(func(ss *link.Session, msg link.FbMessage) {
+		return new(MyMessage1), link.FbHandler(func(ss link.FbSession, msg link.FbMessage) {
 			s.HandleMessage1(ss, msg.(*MyMessage1))
 		})
 	case 2:
-		return new(MyMessage2), link.FbHandler(func(ss *link.Session, msg link.FbMessage) {
+		return new(MyMessage2), link.FbHandler(func(ss link.FbSession, msg link.FbMessage) {
 			s.HandleMessage2(ss, msg.(*MyMessage2))
 		})
 	}

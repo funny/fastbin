@@ -12,7 +12,7 @@ type MyMessage1 struct {
 	Field2 []int
 }
 
-func (s *MyService) HandleMessage1(session *link.Session, msg *MyMessage1) {
+func (s *MyService) HandleMessage1(session link.FbSession, msg *MyMessage1) {
 
 }
 
@@ -22,6 +22,6 @@ type MyMessage2 struct {
 	Field2 string
 }
 
-func (s *MyService) HandleMessage2(session *link.Session, msg *MyMessage2) {
+func (s *MyService) HandleMessage2(session link.FbSession, msg *MyMessage2) {
 
 }

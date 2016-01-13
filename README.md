@@ -98,7 +98,7 @@ fastbin和link配合使用时，需要先理解服务和消息的概念，上面
 
 服务由一系列的接口方法来处理不同的消息，当一个方法签名符合以下条件时，将被fastbin识别成消息处理接口：
 
-1. 第一个参数是`*link.Session`类型
+1. 第一个参数是实现`link.FbSession`接口的类型
 2. 第二个参数是标注了`fb:message = n`标签的有接口消息类型
 
 举例：
@@ -115,10 +115,12 @@ type Message1 struct {
 	Field2 int
 }
 
-func (s *MyService) HandleMessage1(session *link.Session, msg *Message1) {
+func (s *MyService) HandleMessage1(session link.FbSession, msg *Message1) {
 	// ...
 }
 ```
+
+之所以用`link.FbSession`接口做参数而不用`*link.Session`，目的是要跟`*link.Session`解耦，在项目才有机会做特殊优化或自定义Session管理。
 
 例子中的`HandleMessage1`将被识别成`Message1`的处理接口。
 

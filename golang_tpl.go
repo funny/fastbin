@@ -22,7 +22,7 @@ func (s {{.Recv}}) NewRequest(id byte) (link.FbMessage, link.FbHandler) {
 	switch id {
 	{{range .Methods}}
 	case {{.ID}}:
-		return new({{.Type}}), link.FbHandler(func(ss *link.Session, msg link.FbMessage) {
+		return new({{.Type}}), link.FbHandler(func(ss link.FbSession, msg link.FbMessage) {
 			s.{{.Name}}(ss, msg.(*{{.Type}}))
 		})
 	{{end}}

@@ -238,12 +238,7 @@ func analyzeMethod(pkgInfo *packageInfo, m *doc.Func) (msg *structInfo) {
 	}
 
 	// first parameter must *link.Session
-	arg1, ok := params.List[0].Type.(*ast.StarExpr)
-	if !ok {
-		log.Printf("\t\tIgnore method '%s', first parameter not a pointer", m.Name)
-		return
-	}
-	arg1Sel, ok := arg1.X.(*ast.SelectorExpr)
+	arg1Sel, ok := params.List[0].Type.(*ast.SelectorExpr)
 	if !ok {
 		log.Printf("\t\tIgnore method '%s', first parameter not a selector", m.Name)
 		return
@@ -253,7 +248,7 @@ func analyzeMethod(pkgInfo *packageInfo, m *doc.Func) (msg *structInfo) {
 		log.Printf("\t\tIgnore method '%s', first parameter not a package selector", m.Name)
 		return
 	}
-	if arg1SelX.Name != "link" || arg1Sel.Sel.Name != "Session" {
+	if arg1SelX.Name != "link" || arg1Sel.Sel.Name != "FbSession" {
 		log.Printf("\t\tIgnore method '%s', first parameter *link.Session", m.Name)
 		return
 	}
