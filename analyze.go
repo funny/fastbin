@@ -209,6 +209,7 @@ func analyzeHandlers(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 				)
 			}
 			file.Handler = handler
+			handler.ID = file.ServiceID
 			log.Printf("\t+ Handler '%s'", handler.Name)
 
 			for _, m := range t.Methods {

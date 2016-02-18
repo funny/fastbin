@@ -12,18 +12,18 @@ var goTemplate = `
 {{with .Handler}}
 
 {{if .ID}}
-func (s {{.Recv}}) ServiceID() byte {
+func (this {{.Recv}}) ServiceID() byte {
 	return {{.ID}}
 }
 {{end}}
 
-func (s {{.Recv}}) NewRequest(id byte) (link.FbMessage, link.FbHandler) {
+func (this {{.Recv}}) NewRequest(id byte) (link.FbMessage, link.FbHandler) {
 	{{if .Methods}}
 	switch id {
 	{{range .Methods}}
 	case {{.ID}}:
-		return new({{.Type}}), link.FbHandler(func(ss link.FbSession, msg link.FbMessage) {
-			s.{{.Name}}(ss, msg.(*{{.Type}}))
+		return new({{.Type}}), link.FbHandler(func(s link.FbSession, msg link.FbMessage) {
+			this.{{.Name}}(s, msg.(*{{.Type}}))
 		})
 	{{end}}
 	}

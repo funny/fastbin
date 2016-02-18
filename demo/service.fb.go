@@ -4,16 +4,18 @@ import "github.com/funny/binary"
 
 import "github.com/funny/link"
 
-
-func (s *MyService) NewRequest(id byte) (link.FbMessage, link.FbHandler) {
+func (this *MyService) ServiceID() byte {
+	return 1
+}
+func (this *MyService) NewRequest(id byte) (link.FbMessage, link.FbHandler) {
 	switch id {
 	case 1:
-		return new(MyMessage1), link.FbHandler(func(ss link.FbSession, msg link.FbMessage) {
-			s.HandleMessage1(ss, msg.(*MyMessage1))
+		return new(MyMessage1), link.FbHandler(func(s link.FbSession, msg link.FbMessage) {
+			this.HandleMessage1(s, msg.(*MyMessage1))
 		})
 	case 2:
-		return new(MyMessage2), link.FbHandler(func(ss link.FbSession, msg link.FbMessage) {
-			s.HandleMessage2(ss, msg.(*MyMessage2))
+		return new(MyMessage2), link.FbHandler(func(s link.FbSession, msg link.FbMessage) {
+			this.HandleMessage2(s, msg.(*MyMessage2))
 		})
 	}
 	panic("*MyService: Unknow Message Type")
