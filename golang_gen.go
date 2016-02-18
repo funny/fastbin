@@ -37,7 +37,7 @@ func generateGolang(file *fileInfo, byteOrder string) (head, code []byte) {
 	}
 
 	headStr := "package " + file.Package + "\n\nimport \"github.com/funny/binary\"\n\n"
-	if len(file.Services) > 0 {
+	if file.Handler != nil {
 		headStr += `import "github.com/funny/link"`
 	}
 	head = []byte(headStr)

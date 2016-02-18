@@ -4,9 +4,7 @@ import "github.com/funny/binary"
 
 import "github.com/funny/link"
 
-func (s *MyService) ServiceID() byte {
-	return 1
-}
+
 func (s *MyService) NewRequest(id byte) (link.FbMessage, link.FbHandler) {
 	switch id {
 	case 1:
@@ -100,6 +98,43 @@ func (s *MyMessage2) MarshalWriter(w binary.BinaryWriter) {
 	w.WriteString(s.Field2)
 }
 func (s *MyMessage2) UnmarshalReader(r binary.BinaryReader) {
+	s.Field1 = int(r.ReadUint64LE())
+	s.Field2 = string(r.ReadString(int(r.ReadUint16LE())))
+}
+func (s *MyMessage3) MessageID() byte {
+	return 3
+}
+func (s MyMessage3) ServiceID() byte {
+	return 1
+}
+func (s *MyMessage3) MarshalBinary() (data []byte, err error) {
+	var buf = binary.Buffer{Data: make([]byte, s.BinarySize())}
+	s.MarshalWriter(&buf)
+	return buf.Data, nil
+}
+func (s *MyMessage3) UnmarshalBinary(data []byte) error {
+	s.UnmarshalPacket(data)
+	return nil
+}
+func (s *MyMessage3) MarshalPacket(p []byte) {
+	var buf = binary.Buffer{Data: p}
+	s.MarshalWriter(&buf)
+}
+func (s *MyMessage3) UnmarshalPacket(p []byte) {
+	var buf = binary.Buffer{Data: p}
+	s.UnmarshalReader(&buf)
+}
+func (s *MyMessage3) BinarySize() (n int) {
+	n = 8 
+	n += 2 + len(s.Field2)
+	return
+}
+func (s *MyMessage3) MarshalWriter(w binary.BinaryWriter) {
+	w.WriteUint64LE(uint64(s.Field1))
+	w.WriteUint16LE(uint16(len(s.Field2)))
+	w.WriteString(s.Field2)
+}
+func (s *MyMessage3) UnmarshalReader(r binary.BinaryReader) {
 	s.Field1 = int(r.ReadUint64LE())
 	s.Field2 = string(r.ReadString(int(r.ReadUint16LE())))
 }

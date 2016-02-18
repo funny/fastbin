@@ -1,8 +1,9 @@
+// fb:service = 1
 package main
 
 import "github.com/funny/link"
 
-// fb:service = 1
+// fb:handler
 type MyService struct {
 }
 
@@ -24,4 +25,10 @@ type MyMessage2 struct {
 
 func (s *MyService) HandleMessage2(session link.FbSession, msg *MyMessage2) {
 
+}
+
+// fb:message = 3
+type MyMessage3 struct {
+	Field1 int
+	Field2 string
 }

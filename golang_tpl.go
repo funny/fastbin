@@ -9,7 +9,7 @@ func line(s string) string {
 }
 
 var goTemplate = `
-{{range .Services}}
+{{with .Handler}}
 
 {{if .ID}}
 func (s {{.Recv}}) ServiceID() byte {

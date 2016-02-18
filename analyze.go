@@ -11,27 +11,28 @@ import (
 	"regexp"
 )
 
-var svcRegexp = regexp.MustCompile(`^\s*fb:\s*service(?:\s*=\s*(\d+))?\s*$`)
-var msgRegexp = regexp.MustCompile(`^\s*fb:\s*message(?:\s*=\s*(\d+))?\s*$`)
+var svcRegexp = regexp.MustCompile(`^\s*fb:service\s*=\s*(\d+)\s*$`)
+var hdlRegexp = regexp.MustCompile(`^\s*fb:handler\s*$`)
+var msgRegexp = regexp.MustCompile(`^\s*fb:message(?:\s*=\s*(\d+))?\s*$`)
 
 type packageInfo struct {
 	fset       *token.FileSet
 	Name       string
 	ConstTypes map[string]string
-	Services   map[string]*serviceInfo
-	Messages   map[string]*structInfo
 	Files      map[string]*fileInfo
+	serviceIDs map[string]string
 }
 
 type fileInfo struct {
 	Package    string
 	FilePath   string
+	ServiceID  string
 	ConstTypes map[string]string
-	Services   []*serviceInfo
-	Messages   []*structInfo
+	Handler    *handlerInfo
+	Messages   map[string]*structInfo
 }
 
-type serviceInfo struct {
+type handlerInfo struct {
 	ID      string
 	Name    string
 	Recv    string
@@ -75,8 +76,10 @@ func (pkgInfo *packageInfo) File(pos token.Pos) *fileInfo {
 	file, exists := pkgInfo.Files[filename]
 	if !exists {
 		file = &fileInfo{
+			ServiceID:  pkgInfo.serviceIDs[filename],
 			Package:    pkgInfo.Name,
 			ConstTypes: pkgInfo.ConstTypes,
+			Messages:   make(map[string]*structInfo),
 		}
 		pkgInfo.Files[filename] = file
 	}
@@ -84,7 +87,7 @@ func (pkgInfo *packageInfo) File(pos token.Pos) *fileInfo {
 }
 
 func analyzeDir(root string) *packageInfo {
-	pkgName, fset, files := parseFiles(root)
+	pkgName, fset, files, serviceIDs := parseFiles(root)
 	pkgAst, _ := ast.NewPackage(fset, files, nil, nil)
 	pkgDoc := doc.New(pkgAst, pkgName, doc.AllDecls)
 
@@ -92,20 +95,20 @@ func analyzeDir(root string) *packageInfo {
 		fset:       fset,
 		Name:       pkgName,
 		ConstTypes: make(map[string]string),
-		Services:   make(map[string]*serviceInfo),
-		Messages:   make(map[string]*structInfo),
 		Files:      make(map[string]*fileInfo),
+		serviceIDs: serviceIDs,
 	}
 	analyzeConstTypes(pkgInfo, pkgDoc)
 	analyzeMessages(pkgInfo, pkgDoc)
-	analyzeServices(pkgInfo, pkgDoc)
+	analyzeHandlers(pkgInfo, pkgDoc)
 	return pkgInfo
 }
 
-func parseFiles(root string) (string, *token.FileSet, map[string]*ast.File) {
+func parseFiles(root string) (string, *token.FileSet, map[string]*ast.File, map[string]string) {
 	var pkgName string
 	fset := token.NewFileSet()
 	files := make(map[string]*ast.File)
+	serviceIDs := make(map[string]string)
 	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		isFbFile, err := filepath.Match("*.fb.go", info.Name())
 		if err != nil {
@@ -124,12 +127,21 @@ func parseFiles(root string) (string, *token.FileSet, map[string]*ast.File) {
 			if err != nil {
 				log.Fatalf("Could't parse file '%s': %s", path, err)
 			}
-			files[path] = file
+			_, filename := filepath.Split(path)
+			files[filename] = file
 			pkgName = file.Name.String()
+
+			// find 'fb:service = 123'
+			matches := svcRegexp.FindStringSubmatch(file.Doc.Text())
+			if len(matches) > 0 {
+				serviceIDs[filename] = matches[1]
+			} else {
+				serviceIDs[filename] = ""
+			}
 		}
 		return nil
 	})
-	return pkgName, fset, files
+	return pkgName, fset, files, serviceIDs
 }
 
 // find 'type XXX int'
@@ -160,9 +172,9 @@ func analyzeMessages(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 			}
 
 			structInfo := analyzeStruct(pkgInfo, matches[1], t.Name, structType)
-			pkgInfo.Messages[t.Name] = structInfo
 			file := pkgInfo.File(t.Decl.Pos())
-			file.Messages = append(file.Messages, structInfo)
+			structInfo.ServiceID = file.ServiceID
+			file.Messages[t.Name] = structInfo
 
 			if structInfo.ID != "" {
 				log.Printf("\t+ Message '%s', ID = %s", t.Name, structInfo.ID)
@@ -174,62 +186,67 @@ func analyzeMessages(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 	}
 }
 
-// find 'fb:service'
-func analyzeServices(pkgInfo *packageInfo, pkgDoc *doc.Package) {
+// find 'fb:handler'
+func analyzeHandlers(pkgInfo *packageInfo, pkgDoc *doc.Package) {
 	for _, t := range pkgDoc.Types {
-		if matches := svcRegexp.FindStringSubmatch(t.Doc); len(matches) > 0 {
-			service := &serviceInfo{
-				ID:      matches[1],
+		if matches := hdlRegexp.FindStringSubmatch(t.Doc); len(matches) > 0 {
+			handler := &handlerInfo{
 				Name:    t.Name,
 				Methods: make(map[string]*methodInfo),
 			}
 
-			pkgInfo.Services[t.Name] = service
 			file := pkgInfo.File(t.Decl.Pos())
-			file.Services = append(file.Services, service)
-
-			if service.ID != "" {
-				log.Printf("\tService '%s', ID = %s", service.Name, service.ID)
-			} else {
-				log.Printf("\tService '%s'", service.Name)
+			if file.ServiceID == "" {
+				log.Fatalf(
+					"Found handler '%s' without service tag",
+					handler.Name,
+				)
 			}
+			if file.Handler != nil {
+				log.Fatalf(
+					"Duplicate service handler: %s, %s",
+					handler.Name, file.Handler.Name,
+				)
+			}
+			file.Handler = handler
+			log.Printf("\t+ Handler '%s'", handler.Name)
+
 			for _, m := range t.Methods {
-				msg := analyzeMethod(pkgInfo, m)
+				msg := analyzeMethod(file, m)
 				if msg == nil {
 					continue
 				}
 
 				// check receiver
-				if service.Recv == "" {
-					service.Recv = m.Recv
-				} else if m.Recv != service.Recv {
+				if handler.Recv == "" {
+					handler.Recv = m.Recv
+				} else if m.Recv != handler.Recv {
 					log.Fatalf(
-						"Bad service method '%s.%s', service type is '%s', method receiver is '%s'",
-						t.Name, m.Name, service.Recv, m.Recv)
+						"Bad handler method '%s.%s', handler type is '%s', method receiver is '%s'",
+						t.Name, m.Name, handler.Recv, m.Recv)
 				}
 
 				// check duplicate message ID
-				if mm, exists := service.Methods[msg.ID]; exists {
+				if mm, exists := handler.Methods[msg.ID]; exists {
 					log.Fatalf(
 						"Duplicate message ID '%s' on '%s' for message type '%s', registed message is '%s' and handled by '%s'",
 						msg.ID, m.Name, msg.Name, mm.Type, mm.Name,
 					)
 				}
 
-				msg.ServiceID = service.ID
-				msg.APIName = service.Name + "." + m.Name
-				service.Methods[msg.ID] = &methodInfo{
+				msg.APIName = handler.Name + "." + m.Name
+				handler.Methods[msg.ID] = &methodInfo{
 					ID:   msg.ID,
 					Name: m.Name,
 					Type: msg.Name,
 				}
-				log.Printf("\t\t+ Handler '%s'", m.Name)
+				log.Printf("\t\t+ Method '%s'", m.Name)
 			}
 		}
 	}
 }
 
-func analyzeMethod(pkgInfo *packageInfo, m *doc.Func) (msg *structInfo) {
+func analyzeMethod(file *fileInfo, m *doc.Func) (msg *structInfo) {
 	// check parameter number
 	params := m.Decl.Type.Params
 	if params == nil || len(params.List) != 2 {
@@ -264,7 +281,7 @@ func analyzeMethod(pkgInfo *packageInfo, m *doc.Func) (msg *structInfo) {
 		log.Printf("\t\tIgnore method '%s', second parameter not point to an identity", m.Name)
 		return
 	}
-	msg, ok = pkgInfo.Messages[arg2Type.Name]
+	msg, ok = file.Messages[arg2Type.Name]
 	if !ok {
 		log.Printf("\t\tIgnore method '%s', second parameter not a message", m.Name)
 		return
@@ -272,9 +289,6 @@ func analyzeMethod(pkgInfo *packageInfo, m *doc.Func) (msg *structInfo) {
 	if msg.ID == "" {
 		log.Printf("\t\tIgnore method '%s', second parameter not have message ID", m.Name)
 		return
-	}
-	if msg.ServiceID != "" {
-		log.Fatalf("\t\t'%s' duplicate handle message '%s', registed handled is '%s'", m.Name, msg.Name, msg.APIName)
 	}
 	return
 }

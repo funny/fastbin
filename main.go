@@ -26,13 +26,11 @@ func scanDir(dir, byteOrder string) {
 	}
 	log.Print("Analyze ", absDir)
 	pkgInfo := analyzeDir(dir)
-	if len(pkgInfo.Services) > 0 || len(pkgInfo.Messages) > 0 {
-		for name, file := range pkgInfo.Files {
+	for name, file := range pkgInfo.Files {
+		if file.Handler != nil || len(file.Messages) > 0 {
 			head, code := generateGolang(file, byteOrder)
 			save(dir, name[:strings.LastIndex(name, ".")]+".fb.go", head, code)
 		}
-	} else {
-		log.Println("Nothing to do")
 	}
 }
 
