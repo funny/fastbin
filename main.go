@@ -3,49 +3,39 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 )
 
+var plugins = make(map[string]func([]*packageInfo))
+
 func main() {
 	flag.Parse()
 
-	byteOrder := "LE"
+	dir := "."
 	if len(flag.Args()) > 0 {
-		byteOrder = flag.Arg(0)
+		dir = flag.Arg(0)
 	}
 
-	scanDir(".", byteOrder)
-}
-
-func scanDir(dir, byteOrder string) {
-	absDir, err := filepath.Abs(dir)
-	if err != nil {
-		log.Fatalf("filepath.Abs(\"%s\") - %s", dir, err)
-	}
-	log.Print("Analyze ", absDir)
-	pkgInfo := analyzeDir(dir)
-	for name, file := range pkgInfo.Files {
-		if file.Handler != nil || len(file.Messages) > 0 {
-			head, code := generateGolang(file, byteOrder)
-			save(dir, name[:strings.LastIndex(name, ".")]+".fb.go", head, code)
+	var pkgInfos []*packageInfo
+	for _, dir := range strings.Split(dir, ":") {
+		absDir, err := filepath.Abs(dir)
+		if err != nil {
+			log.Fatalf("filepath.Abs(\"%s\") - %s", dir, err)
 		}
+		log.Print("Analyze ", absDir)
+		pkgInfos = append(pkgInfos, analyzeDir(dir))
 	}
+
+	plugin := "go"
+	if len(flag.Args()) > 0 {
+		plugin = flag.Arg(1)
+	}
+	plugins[plugin](pkgInfos)
 }
 
-func save(dir, filename string, head, code []byte) {
-	log.Println("->", filename)
-	filename = filepath.Join(dir, filename)
-	file, err := os.Create(filename)
-	if err != nil {
-		log.Fatalf("Create file '%s' failed: %s", filename, err)
-	}
-	if _, err := file.Write(head); err != nil {
-		log.Fatalf("Write file '%s' failed: %s", filename, err)
-	}
-	if _, err := file.Write(code); err != nil {
-		log.Fatalf("Write file '%s' failed: %s", filename, err)
-	}
-	file.Close()
+func line(s string) string {
+	return strings.Replace(
+		strings.Replace(s, "\n", "", -1), "\t", "", -1,
+	)
 }

@@ -17,6 +17,7 @@ var msgRegexp = regexp.MustCompile(`^\s*fb:message(?:\s*=\s*(\d+))?\s*$`)
 
 type packageInfo struct {
 	fset       *token.FileSet
+	Dir        string
 	Name       string
 	ConstTypes map[string]string
 	Files      map[string]*fileInfo
@@ -86,13 +87,14 @@ func (pkgInfo *packageInfo) File(pos token.Pos) *fileInfo {
 	return file
 }
 
-func analyzeDir(root string) *packageInfo {
-	pkgName, fset, files, serviceIDs := parseFiles(root)
+func analyzeDir(dir string) *packageInfo {
+	pkgName, fset, files, serviceIDs := parseFiles(dir)
 	pkgAst, _ := ast.NewPackage(fset, files, nil, nil)
 	pkgDoc := doc.New(pkgAst, pkgName, doc.AllDecls)
 
 	var pkgInfo = &packageInfo{
 		fset:       fset,
+		Dir:        dir,
 		Name:       pkgName,
 		ConstTypes: make(map[string]string),
 		Files:      make(map[string]*fileInfo),
@@ -104,12 +106,12 @@ func analyzeDir(root string) *packageInfo {
 	return pkgInfo
 }
 
-func parseFiles(root string) (string, *token.FileSet, map[string]*ast.File, map[string]string) {
+func parseFiles(dir string) (string, *token.FileSet, map[string]*ast.File, map[string]string) {
 	var pkgName string
 	fset := token.NewFileSet()
 	files := make(map[string]*ast.File)
 	serviceIDs := make(map[string]string)
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		isFbFile, err := filepath.Match("*.fb.go", info.Name())
 		if err != nil {
 			log.Fatal("match *.fb.go file failed: %s", err)
@@ -121,7 +123,7 @@ func parseFiles(root string) (string, *token.FileSet, map[string]*ast.File, map[
 		if err != nil {
 			log.Fatal("match *.go file failed: %s", err)
 		}
-		if filepath.Dir(path) == root && isGoFile {
+		if filepath.Dir(path) == dir && isGoFile {
 			log.Println("<-", path)
 			file, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
 			if err != nil {

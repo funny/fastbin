@@ -1,13 +1,5 @@
 package main
 
-import "strings"
-
-func line(s string) string {
-	return strings.Replace(
-		strings.Replace(s, "\n", "", -1), "\t", "", -1,
-	)
-}
-
 var goTemplate = `
 {{with .Handler}}
 

@@ -2,11 +2,51 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"go/format"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"text/template"
 )
+
+func init() {
+	plugins["go"] = golangPlugin
+}
+
+func golangPlugin(pkgInfos []*packageInfo) {
+	byteOrder := "LE"
+	if len(flag.Args()) > 0 {
+		byteOrder = flag.Arg(2)
+	}
+
+	for _, pkgInfo := range pkgInfos {
+		for name, file := range pkgInfo.Files {
+			if file.Handler != nil || len(file.Messages) > 0 {
+				head, code := generateGolang(file, byteOrder)
+				saveGolang(pkgInfo.Dir, name[:strings.LastIndex(name, ".")]+".fb.go", head, code)
+			}
+		}
+	}
+}
+
+func saveGolang(dir, filename string, head, code []byte) {
+	log.Println("->", filename)
+	filename = filepath.Join(dir, filename)
+	file, err := os.Create(filename)
+	if err != nil {
+		log.Fatalf("Create file '%s' failed: %s", filename, err)
+	}
+	if _, err := file.Write(head); err != nil {
+		log.Fatalf("Write file '%s' failed: %s", filename, err)
+	}
+	if _, err := file.Write(code); err != nil {
+		log.Fatalf("Write file '%s' failed: %s", filename, err)
+	}
+	file.Close()
+}
 
 func generateGolang(file *fileInfo, byteOrder string) (head, code []byte) {
 	needN := false
