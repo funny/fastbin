@@ -1,305 +1,133 @@
-NOTE：此工具还在持续开发中，可能会有较大改动。
 介绍
 ====
 
-这个小工具可以分析指定代码中的Go结构体，并生成对应二进制序列化和反序列化代码。
+fastbin是一个用来生成二进制序列化和反序列化代码的工具。
 
-可以配合[`github.com/funny/link`](https://github.com/funny/link)内置的分包协议使用，也可以单独使用。
+fastbin的设计目的是减少DSL的使用，让开发者可以所见即所得的定义通讯协议或者二进制数据格式。
 
-更多介绍：[http://zhuanlan.zhihu.com/idada/20410055](http://zhuanlan.zhihu.com/idada/20410055)
+传统的协议描述语言（比如Protobuf）存在以下问题：
 
-基本用法
-=======
+1. 对开发者不直观，所有功能隐藏在DSL语法背后，需要熟悉DSL语法才能使用
+2. 学习DSL的过程不直观，DSL所对应的最终代码对开发者是不直接可见的，需要反复研究调试才能掌握DSL语法和对应输出的关系
+3. DSL和实际业务代码是分离的，开发者在实际开发过程中需要在DSL、代码生、业务代码之间来回切换，破坏开发过程的思维连贯性
 
-fastbin将自动为代码中加了`fb:message`标签的结构体类型生成实现以下接口的方法：
+fastbin用go作为描述语言，开发者只需要定义最终在业务代码中要用到的数据结构，fastbin自动为其生成序列化和反序列化代码。
 
-```go
-import "encoding"
-import "github.com/funny/link"
-import "github.com/funny/binary"
+对于使用go作为第一开发语言的项目，这样的开发流程可以直接省掉DSL学习过程，以及平时开发中的DSL编写和代码生成，以及DSL输出物调试等过程，并且可以使开发者的思维更连贯。
 
-type FastbinMarshaler interface {
-	// 将结构体的内容序列化到 BinaryWriter 中
-	MarshalWriter(w binary.BinaryWriter)
-}
+P.S：同样的体类型信息也可以用来生成客户端的协议代码（已在实际游戏项目实践）。
 
-type FastbinUnmarshaler interface {
-	// 从 BinaryReader 中反序列化出结构体数据
-	UnmarshalReader(r binary.BinaryReader)
-}
+类型
+====
 
-type Fastbin interface {
-	// 配合link使用所需的接口
-	link.FbMessage
-
-	// 基本的序列化反序列化接口
-	FastbinMarshaler
-	FastbinUnmarshaler
-	
-	// 可对gob起到加速作用
-	encoding.BinaryMarshaler
-	encoding.BinaryUnmarshaler
-}
-```
-
-注释标签用法示例：
-
-```go
-//fb:message
-type MyMessage struct {
-		Field1 int
-		Field2 string
-}
-```
-
-fastbin的代码分析是以包为单位的，代码生成是以文件为单位的。
-
-示例，分析当前目录下的包：
-
-```
-fastbin
-```
-
-目前fastbin没有额外的命令行参数，但是之后的版本中可能会通过命令行参数来支持不同语言的代码的生成。
-
-除了命令行执行之外，也可以结合`go generate`命令使用，只在需要生成代码的文件开头加上`go generate`指令：
-
-```go
-//go:generate fastbin
-package demo
-
-//fb:message
-type MyMessage struct {
-		Field1 int
-		Field2 string
-}
-```
-
-如果你的`$GOPATH/bin`不在`$PATH`环境变量里，可以用这样的格式：`//go:generate $GOPATH/bin/fastbin`。
-
-`go generate`的注释标签每个包只需要有一个文件有就可以，如果重复加标签就会重复生成代码。
-
-跟`go gnerate`结合有个好出，可以不用额外写脚本，只需要执行`go generate ./...`就可以遍历生成当前目录及子目录中所有加了`go generate`注释标签的代码。
-
-这在组织Go项目构建的时候很有用，`go generate`还支持`...`参数，这个参数会让`go gnerate`遍历`$GOPATH`下所有的包。
-
-配合link使用
-===========
-
-fastbin除了生成结构体的二进制序列化代码以外，还可以配合link使用，变成服务接口的代码生成工具。
-
-fastbin和link配合使用时，需要先理解服务和消息的概念，前面文档已经介绍了`fb:message`标签用来声明消息类型。
-
-配合link使用时，我们需要给消息分配一个消息类型ID用来识别消息类型，所以标签的形式会变成这样：`fb:message = 123`，等号后面的消息ID是0 - 255之间的值。
-
-而一个通用的网络层不可能只支持255种消息类型，所以link要求以服务为单位来组织消息，因此我们需要用到一个新的标签`fb:service = n`。
-
-这个标签作用于单个文件，加载`package`开头，例如：
-
-```go
-//fb:service = 1
-package MyModule
-
-// ...
-```
-
-当一个文件头部声明了`fb:service`标签，这个文件中所有的`fb:message`都会自动获得同一个服务ID。
-
-标签中的n一样是0 - 255之间的一个数，因此link支持255种服务类型，每个服务中又各支持255种消息类型，这样就足够大部分项目的使用需求了。
-
-一个包通过文件和服务ID的划分，可以提供多个服务。
-
-服务由一系列的接口方法来处理不同的消息，每个添加了`fb:service`标签的文件中，都可以声明一个`fb:handler`用来提供消息处理接口。
-
-当一个方法签名符合以下条件时，将被fastbin识别成消息处理接口：
-
-1. 第一个参数是实现`link.FbSession`接口的类型
-2. 第二个参数是标注了`fb:message = n`标签的有接口消息类型
-
-举例：
-
-```go
-//fb:service = 1
-package MyModule
-
-//fb:handler
-type MyService struct {
-}
-
-//fb:message = 1
-type Message1 struct {
-	Field1 int
-	Field2 int
-}
-
-func (s *MyService) HandleMessage1(session link.FbSession, msg *Message1) {
-	// ...
-}
-```
-
-之所以用`link.FbSession`接口做参数而不用`*link.Session`，目的是要跟`*link.Session`解耦，在项目才有机会做特殊优化或自定义Session管理。
-
-例子中的`HandleMessage1`将被识别成`Message1`的处理接口。
-
-需要注意，一个消息类型只能由一个服务接口处理，出现重复的消息处理接口时就会报错，即便是方法名不一样或者服务类型不一样。
-
-还需要注意，只有直接用于接收和发送的消息才需要有消息类型ID，消息内嵌套的类型是不需要指定ID的。
-
-fastbin将为每个标注了`fb:handler`标签的类型生成`NewRequest()`方法。
-
-`NewRequest()`方法中会根据消息的第一个字节来识别消息类型，然后实例化对应的消息对象，并返回这种消息类型对应的处理接口。
-
-具体请参考link的文档和生成出来的代码：
-
-* [link主页](https://github.com/funny/link)
-* [demo/service.fb.go](https://github.com/funny/fastbin/blob/master/demo/service.fb.go)
-
-协议格式
-=======
-
-fastbin的序列化逻辑很简单，按字段顺序执行序列化和反序列化，默认使用小端格式编码多字节数值。
+基本类型
+-------
 
 fastbin支持以下基本类型：
 
-| 类型 | 字节数 |
-|------|------|
-| `int8`, `uint8`, `byte`, `bool` | 1 |
-| `int16`, `uint16` | 2 |
-| `int32`, `uint32`, `float32` | 4 |
-| `int`, `uint`, `int64`, `uint64`, `float64` | 8 |
-| `string`, `[]byte` | 2 + N |
+```go
+int, uint
+int8, uint8
+int16, uint16
+int32, uint32
+int64, uint64
 
-fastbin支持指针类型，指针比普通类型额外多一个字节用来区分空指针，指针值为0时表示空指针，空指针的后续内容长度为0：
+float32, float64
 
-| 类型 | 字节数 |
-|------|------|
-| `*int8`, `*uint8`, `*byte`, `*bool` | 1 or 1 + 1 |
-| `*int16`, `*uint16` | 1 or 1 + 2 |
-| `*int32`, `*uint32`, `*float32` | 1 or 1 + 4 |
-| `*int`, `*uint`, `*int64`, `*uint64`, `*float64` | 1 or 1 + 8 |
+byte, bool
 
-支持变长数组，变长数组采用2个字节存储数组元素个数：
+string
 
-| 类型 | 字节数 |
-|------|------|
-| `[]int8`, `[]uint8`, `[]byte`, `[]bool`, `string` | 2 + N |
-| `[]int16`, `[]uint16` | 2 + N * 2 |
-| `[]int32`, `[]uint32`, `[]float32` | 2 + N * 4 |
-| `[]int64`, `[]uint64`, `[]float64` | 2 + N * 8 |
+[]byte
+```
 
-支持定长数组，定长数组顺序循环序列化，不需要额外长度信息：
+复合类型
+-------
 
-| 类型 | 字节数 |
-|------|------|
-| `[N]int8`, `[N]uint8`, `[N]byte`, `[N]bool` | N |
-| `[N]int16`, `[N]uint16` | N * 2 |
-| `[N]int32`, `[N]uint32`, `[N]float32` | N * 4 |
-| `[N]int64`, `[N]uint64`, `[N]float64` | N * 8 |
-
-支持结构体嵌套和自定义类型，基本类型以为的所有其它类型都通过`MarshalWriter`和`UnmarshalReader`进行序列化和反序列化，所以类型嵌套时需要注意被嵌套的类型也要有`fb:message`标签：
-
-| 类型 | 字节数 |
-|------|------|
-| `MyType` | MyType.BinarySize() |
-| `*MyType` | 1 or 1 + MyType.BinarySize() |
-| `[]MyType` | 2 + sum(MyType.BinarySize()) |
-| `[N]MyType` | sum(MyType.BinarySize()) |
-
-支持多维数组等复杂数据结构：
-
-| 类型 | 说明 |
-|------|-----|
-| `[][]int` | 二维数组 |
-| `[10][]*int` | 第一唯定长的二维数组 |
-| `**int` | 指向指针的指针 |
-| `*[][]int` | 指向二维数组的指针 |
-| `*[10]*[]**int` | 指向定长的指针的指针的数组的指针的数组的指针 |
-
-在配合link使用时，link会固定用4个字节的包头来做分包和消息分类，其中前2个字节是包体长度信息，第3个字节是服务类型ID，第4个字节是消息类型ID。
-
-所以配合link使用时如果需要发送64K以上的消息包，请在应用协议层面添加翻页或者分帧的设计。
-
-更详细的内容请参考生成后的代码：
-
-* [demo/demo.fb.go](https://github.com/funny/fastbin/blob/master/demo/demo.fb.go)
-* [demo/types.fb.go](https://github.com/funny/fastbin/blob/master/demo/types.fb.go)
-* [demo/service.fb.go](https://github.com/funny/fastbin/blob/master/demo/service.fb.go)
-
-关于体积和效率我按云风给sproto做的测试里的数据结构和数据做了测试。
-
-结构如下：
+fastbin支持以下复合类型：
 
 ```go
-type AddressBook struct {
-	Person []Person
-}
-
-type Person struct {
-	Name  string
-	Id    int32
-	Email string
-	Phone []PhoneNum
-}
-
-type PhoneNum struct {
-	Number string
-	Type   int32
-}
+结构体：MyType
+指针类型：*int, *MyType
+数组类型：[10]int, [10]MyType
+map类型：map[string]int, map[int]MyType
 ```
 
-测试数据如下：
+fastbin的map类型有以下限制：
+
+1. key和value均支持以下类型：
 
 ```go
-ab := AddressBook{[]Person{
-	{"Alice", 10000, "", []PhoneNum{
-		{"123456789", 1},
-		{"87654321", 2},
-	}},
-	{"Bob", 20000, "", []PhoneNum{
-		{"01234567890", 3},
-	}},
-}}
+int, int8, int16, int32, int64
+uint, uint8, uint16, uint32, uint64
+float32, float64
+string
 ```
 
-序列化后数据体积为76字节，执行1M次编码和1M次解码所需时间为：
+2. 支持结构体作为key，但不支持指针作为key
+3. 支持指针作为value，但不支持结构体作为value
 
+组合嵌套
+----
+
+fastbin在支持的类型范围内，支持任意程度的组合嵌套，例如以下几种情况都是支持的：
+
+```go
+**MyType
+
+[]*MyType
+
+[][]byte
+
+[][]int
+
+[][]string
+
+map[int][]byte
+
+map[string]*MyType
+
+[]map[string]*MyType
+
+map[string][]*MyType
 ```
-Size: 76
-Marshal 1M times: 125.32859ms
-Unmarshal 1M times: 638.01296ms
+
+标签
+----
+
+fastbin目前支持两种结构体字段标签：
+
+1. 当需要让某个字段不参与序列化时，使用`fb:"-"`标签
+2. 当需要指定某个字段用具体类型参与序列化时，使用`fb:"目标类型"`标签
+
+其中类型转换标签只支持以下类型间的互相转换：
+
+```go
+int, int8, int16, int32, int64
+uint, uint8, uint16, uint32, uint64
+float32, float64
 ```
 
-反序列化过程因为有对象创建，所以开销较大，以后可以考虑加入对象池进行优化。
+格式
+====
 
-注：云风给sproto的测试是在lua里的，所以两者执行时间不具有可比性。
+fastbin的序列化逻辑很简单，按字段顺序执行序列化和反序列化。
 
-FAQ
-===
+基本类型使用小端格式编码多字节数值，浮点数使用IEEE 754标准。
 
-客户端代码怎么办？
---------------
+字符串和[]byte用头两个字节存储长度。
 
-fastbin因为是给游戏项目用，所以设计时候就考虑了要支持多种语言的代码生成，结构上是比较简单容易扩展的。
+指针类型用头一个字节用来区分空指针，指针值为0时表示空指针，空指针的后续内容长度为0。
 
-添加其它语言的代码生成可以参考`golang_gen.go`和`golang_tpl.go`实现，欢迎大家提交扩展。
+Slice用头两个字节存储元素个数，之后是连续的元素数据。
 
-协议文档怎么办？
--------------
+数组顺序循环序列化，没有额外长度信息。
 
-计划下个版本加入生成协议描述文档的模板，生成一份HTML文档出来，在浏览器上直接阅读。
+map类型用头两个字节存储元素个数，之后是连续的key-value数据。
 
-用起来可能类似于`godoc`命令：`fastbin -S :8080`
-
-更多的协议特性？
--------------
-
-关于Protobuf的optional设置，可以用指针类型部分模拟，但并不完全。
-
-fastbin的协议结构是严格的并且不向下兼容，因为我们目前项目中客户端都有热更新技术，所以这方面需求不强烈。
-
-如果对fastbin用的二进制格式不满意，也可以替换成自己喜欢的格式，改模板就可以。
+基本类型以外的所有其它类型都通过`MarshalWriter`和`UnmarshalReader`进行序列化和反序列化。
 
 END
 ===
 
-欢迎提交Issue和PR，欢迎加群讨论：188680931。
+欢迎提交Issue和PR。
