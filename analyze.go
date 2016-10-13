@@ -113,6 +113,22 @@ func (this *analyzer) analyzeImport(imports map[string]string, visited map[refle
 	}
 	visited[typ] = 1
 
+L:
+	for {
+		switch typ.Kind() {
+		case reflect.Array,
+			reflect.Ptr,
+			reflect.Slice,
+			reflect.Map:
+			typ = typ.Elem()
+			if typPkgPath := typ.PkgPath(); typPkgPath != "" && typPkgPath != pkg {
+				imports[typPkgPath] = typPkgPath
+			}
+		default:
+			break L
+		}
+	}
+
 	switch typ.Kind() {
 	case reflect.Bool,
 		reflect.Int,
@@ -131,18 +147,12 @@ func (this *analyzer) analyzeImport(imports map[string]string, visited map[refle
 		if typPkgPath := typ.PkgPath(); typPkgPath != "" && typPkgPath != pkg {
 			imports[typPkgPath] = typPkgPath
 		}
-	case reflect.Array,
-		reflect.Ptr,
-		reflect.Slice,
-		reflect.Map:
-		typ = typ.Elem()
-		if typPkgPath := typ.PkgPath(); typPkgPath != "" && typPkgPath != pkg {
-			imports[typPkgPath] = typPkgPath
-		}
 	case reflect.Struct:
-		for i := 0; i < typ.NumField(); i++ {
-			fieldType := typ.Field(i).Type
-			this.analyzeImport(imports, visited, pkg, fieldType)
+		if typPkgPath := typ.PkgPath(); typPkgPath == pkg {
+			for i := 0; i < typ.NumField(); i++ {
+				fieldType := typ.Field(i).Type
+				this.analyzeImport(imports, visited, pkg, fieldType)
+			}
 		}
 	}
 }
